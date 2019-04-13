@@ -10,12 +10,23 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        // 마우스 커서 삭제
+        RemoveMouseCursor();
+
     }
 
-    // Update is called once per frame
-    void Update()
+
+    // ===================================================== public function ============================================================
+
+    public void RemoveMouseCursor()
     {
-        
+        // Mouse Lock
+        Cursor.lockState = CursorLockMode.Locked;
+
+        // Cursor visible
+        Cursor.visible = false;
     }
+
+
+
 }
