@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// 캐릭터 상태
+public enum State { IDLE, MOVE, JUMP };
+
 public class PlayerScript : MonoBehaviour, CharacterScript
 {
     // 플레이어를 따라다닐 카메라
@@ -10,21 +13,40 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     // 플레이어 객체 물리 관련 컴포넌트
     private CharacterController controller;
 
-    public Transform head;
+    // 플레이어 애니메이션
+    private Animator animator;
+
+    [Header("Camera Info")]
+    public Transform cameraTrans;
+
+    // 이동 벡터
+    Vector3 moveVector;
+
+    // 조작 가능 여부
+    bool canControl = true;
+
+    // 시스템적인 반복 jump 함수 호출과 유저의 연속 점프 방지를 위한 변수
+    private bool isJumping = false;
+    private bool isJumpEnd = false;
 
     [Header("Character Info")]
-    public float moveSpeed;
-    public float rotateSpeed;
+    public State state; // 캐릭터 상태
+    public float conSpeed; // 현재속도
+    public float maxSpeed; // 최고속도
+    public float moveAcceleration; // 가속 정도
+    public float moveDeceleration; // 감속 정도
+    public float moveDecelerationByJump; // 점프로 인한 감속;
+    public float jumpForce; // 점프력
+    public float gravity; // 중력
 
+    float resultGravity = 0;
 
-    
     void Start()
     {
-        // 플레이어를 따라다닐 카메라 캐싱
-        cam = GameObject.FindObjectOfType<CameraScript>();
-
+        cam = GameObject.Find("Camera").GetComponent<CameraScript>();
 
         controller = GetComponent<CharacterController>();
+        animator = GetComponent<Animator>();
 
     }
     void Update()
@@ -34,13 +56,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     void FixedUpdate()
     {
         // 캐릭터 이동
-        CharacterMove();
+        Move();
 
         // 캐릭터 회전
-        CharacterRotate();
+        Rotate();
 
-        // 카메라 회전
-        CameraRotate();
+        // 입력 검사
+        GetInput();
     }
 
 
@@ -48,77 +70,189 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void Attack()
     {
-        throw new System.NotImplementedException();
+
     }
 
     public void Damaged()
     {
-        throw new System.NotImplementedException();
+
     }
 
     public void Move()
     {
+        // 이동 정보 확인
+        Vector3 frontVector = transform.forward * Input.GetAxis("Vertical");
+        Vector3 rightVector = transform.right * Input.GetAxis("Horizontal");
+        moveVector = (frontVector + rightVector).normalized;
+        /*
+         * 다음의 경우에서는 속도가 점점 내려간다.
+         * 이동 키를 안누르고 있는 경우
+         * 도약 후 착지하는 경우
+        */
+        if (moveVector.sqrMagnitude == 0 || isJumpEnd == true)
+        {
+            // 현재 속도가 점점 줄어든다.
+            conSpeed -= moveDeceleration;
+            if (conSpeed < 0)
+                conSpeed = 0;
+        }
+        // 그 외는 이동
+        else
+        {
+            // 현재 속도가 점점 늘어난다.
+            conSpeed += moveAcceleration;
+            if (conSpeed > maxSpeed)
+                conSpeed = maxSpeed;
+
+
+        }
+        moveVector = moveVector * conSpeed * Time.deltaTime;
+        // 이동 애니메이션 실행
+        animator.SetFloat("Speed", conSpeed / maxSpeed);
+        
+
+
+
+        // 중력 계산
+        if (isJumping)
+            resultGravity -= gravity * Time.deltaTime;
+        else
+            resultGravity = -gravity * Time.deltaTime;
+
+        //resultGravity = (conJump - gravity) * Time.deltaTime;
+        Vector3 gravityVector = new Vector3(0, resultGravity, 0);
+
+
+
+
+
+
+        Vector3 result = moveVector + gravityVector;
+        controller.Move(result);
     }
 
-    // ===================================================== private function ============================================================
-
-    private Vector3 CameraRotate()
+    public void Rotate()
     {
         // 현재 마우스 회전값 저장
         float xRot = Input.GetAxis("Mouse Y") * cam.ySensitivity * -1;
         float yRot = Input.GetAxis("Mouse X") * cam.xSensitivity;
-        Quaternion cameraQuaternion = cam.transform.localRotation * Quaternion.Euler(xRot, yRot, 0);
 
-        // 카메라 x값 계산
+
+
+
+        // 카메라 상하(임계값 내) 계산
+        Quaternion cameraQuaternion = cameraTrans.localRotation * Quaternion.Euler(xRot, yRot, 0);
+  
         float cameraX = cameraQuaternion.eulerAngles.x;
         if (cameraX > 180)
             cameraX = cameraQuaternion.eulerAngles.x % 360 - 360;
 
-        // 카메라 x 임계값 지정
-        if (cameraX < -60)
-            cameraX = -60;
-        else if (cameraX > 60)
-            cameraX = 60;
+        if (cameraX > 20)
+            cameraX = 20;
+        else if (cameraX < -30)
+            cameraX = -30;
 
-        // 카메라 y값 계산
-        float cameraY = cameraQuaternion.eulerAngles.y;
-        if (cameraY > 180)
-            cameraY = cameraQuaternion.eulerAngles.y % 360 - 360;
 
-        // 카메라 y 임계값 지정
-        if (cameraY < -90)
-            cameraY = -90;
-        else if (cameraY > 90)
-            cameraY = 90;
 
-        Vector3 result = new Vector3(cameraX, cameraY, 0);
+        // 캐릭터 좌우 계산
+        Quaternion characterQuaternion = transform.localRotation * Quaternion.Euler(xRot, yRot, 0);
 
-        // 카메라 회전
-        cam.transform.localEulerAngles = result;
+        float characterY = characterQuaternion.eulerAngles.y;
+        if (characterY > 180)
+            characterY = characterQuaternion.eulerAngles.y % 360 - 360;
 
-        // 머리 회전
-        head.eulerAngles = result + new Vector3(0, transform.eulerAngles.y, 0);
-
-        return result;
-    }
-
-    private void CharacterRotate()
-    {
-        // 좌우로 회전중이 아니면 바로 종료
-        if (Input.GetAxis("Horizontal") == 0)
-            return;
-        transform.Rotate(Vector3.up * Input.GetAxis("Horizontal") * rotateSpeed * Time.deltaTime);
-
-    }
-
-    private void CharacterMove()
-    {
-        // 앞뒤로 이동중이 아니면 바로 종료
-        if (Input.GetAxis("Vertical") == 0)
-            return;
         
-        controller.Move(new Vector3(cam.mainCamera.transform.forward.x, 0, cam.mainCamera.transform.forward.z) * Input.GetAxis("Vertical") * moveSpeed * Time.deltaTime);
-        
+
+        // 카메라 상하 회전
+        transform.localEulerAngles = new Vector3(0, characterY, 0);
+
+        // 캐릭터 좌우 회전
+        cameraTrans.localEulerAngles = new Vector3(cameraX, 0, 0);
     }
 
+    public void Jump_End()
+    {
+
+    }
+
+    // ===================================================== private function ============================================================
+
+    private void GetInput()
+    {
+        // 스페이스바 클릭
+        if (Input.GetButtonDown("Jump"))
+        {
+            // 점프 가능한지 판별
+            if (canControl)
+            {
+                // 조작불능 선언
+                canControl = false;
+                StartCoroutine(Jumping());
+            }
+        }
+    }
+
+    private IEnumerator Jumping()
+    {
+        /*
+        // 점프 전 감속
+        while (true)
+        {
+            yield return null;
+            if (moveVector.sqrMagnitude == 0)
+                break;
+        }
+        */
+        // 점프 시작
+        while (true)
+        {
+            // 땅에서 이동중
+            if (controller.isGrounded == true && isJumping == false)
+            {
+                // 점프 애니메이션 실행
+                animator.SetTrigger("Jump_Start");
+                
+                // 점프 가속도 추가
+                resultGravity = jumpForce;
+
+                // 점프 판정
+                isJumping = true;
+            }
+            // 점프중
+            else if (controller.isGrounded == false && isJumping == true)
+            {
+
+            }
+            // 점프 이후 지면에 착지
+            else if (controller.isGrounded == true && isJumping == true)
+            {
+                // 점프 완료 애니메이션 실행
+                animator.SetTrigger("Jump_End");
+
+                // 점프 완료상태로 이동속도가 일시적으로 느려지도록 설정
+                isJumpEnd = true;
+                conSpeed = 0;
+
+                yield return new WaitForSeconds(0.5f);
+                isJumpEnd = false;
+
+                // 이동 애니메이션 실행(점프End 애니메이션 종료)
+                animator.SetTrigger("Move");
+
+                // 점프 종료
+                isJumping = false;
+
+                // 조작 불능 해제
+                canControl = true;
+
+                break;
+            }
+            else
+            {
+                Debug.Log("???");
+            }
+
+            yield return null;
+        }
+    }
 }

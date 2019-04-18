@@ -17,7 +17,7 @@ public class CameraScript : MonoBehaviour
     void Start()
     {
         player = GameObject.Find("Player").GetComponent<Transform>();
-        transform.position = new Vector3(player.position.x, player.position.y + 1.3f, player.position.z);
+        //transform.position = new Vector3(player.position.x, player.position.y + 1.3f, player.position.z);
     }
 
     // Update is called once per frame
