@@ -32,10 +32,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     [Header("Character Info")]
     public State state; // 캐릭터 상태
     public float conSpeed; // 현재속도
-    public float maxSpeed; // 최고속도
+    public float maxSpeed; // 현재 최고속도
     public float moveAcceleration; // 가속 정도
     public float moveDeceleration; // 감속 정도
-    public float moveDecelerationByJump; // 점프로 인한 감속;
     public float jumpForce; // 점프력
     public float gravity; // 중력
 
@@ -55,14 +54,14 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     }
     void FixedUpdate()
     {
+        // 입력 검사
+        GetInput();
+
         // 캐릭터 이동
         Move();
 
         // 캐릭터 회전
         Rotate();
-
-        // 입력 검사
-        GetInput();
     }
 
 
@@ -131,6 +130,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         controller.Move(result);
     }
 
+    float cameraX;
+    float characterY;
     public void Rotate()
     {
         // 현재 마우스 회전값 저장
@@ -141,9 +142,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
         // 카메라 상하(임계값 내) 계산
-        Quaternion cameraQuaternion = cameraTrans.localRotation * Quaternion.Euler(xRot, yRot, 0);
+        Quaternion cameraQuaternion = cameraTrans.localRotation * Quaternion.Euler(xRot, 0, 0);
   
-        float cameraX = cameraQuaternion.eulerAngles.x;
+        cameraX = cameraQuaternion.eulerAngles.x;
         if (cameraX > 180)
             cameraX = cameraQuaternion.eulerAngles.x % 360 - 360;
 
@@ -155,26 +156,21 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
         // 캐릭터 좌우 계산
-        Quaternion characterQuaternion = transform.localRotation * Quaternion.Euler(xRot, yRot, 0);
+        Quaternion characterQuaternion = transform.localRotation * Quaternion.Euler(0, yRot, 0);
 
-        float characterY = characterQuaternion.eulerAngles.y;
+        characterY = characterQuaternion.eulerAngles.y;
         if (characterY > 180)
             characterY = characterQuaternion.eulerAngles.y % 360 - 360;
 
-        
 
-        // 카메라 상하 회전
-        transform.localEulerAngles = new Vector3(0, characterY, 0);
 
         // 캐릭터 좌우 회전
+        transform.localEulerAngles = new Vector3(0, characterY, 0);
+
+        // 카메라 상하 회전
         cameraTrans.localEulerAngles = new Vector3(cameraX, 0, 0);
     }
-
-    public void Jump_End()
-    {
-
-    }
-
+    
     // ===================================================== private function ============================================================
 
     private void GetInput()
@@ -194,15 +190,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     private IEnumerator Jumping()
     {
-        /*
-        // 점프 전 감속
-        while (true)
-        {
-            yield return null;
-            if (moveVector.sqrMagnitude == 0)
-                break;
-        }
-        */
         // 점프 시작
         while (true)
         {
@@ -244,6 +231,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
                 // 조작 불능 해제
                 canControl = true;
+
+                
 
                 break;
             }
