@@ -88,7 +88,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
          * 이동 키를 안누르고 있는 경우
          * 도약 후 착지하는 경우
         */
-        if (moveVector.sqrMagnitude == 0 || isJumpEnd == true)
+        
+        if (frontVector.x == 0 && rightVector.z == 0 || isJumpEnd == true)
         {
             // 현재 속도가 점점 줄어든다.
             conSpeed -= moveDeceleration;
