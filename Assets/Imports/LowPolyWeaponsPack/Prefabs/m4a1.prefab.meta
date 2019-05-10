@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d60d59493b5e82f4291fb31eeac076c9
+labels:
+- Firearm
+- Gun
+- MachineGun
+- Prop
+- Weapon
+timeCreated: 1504882104
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

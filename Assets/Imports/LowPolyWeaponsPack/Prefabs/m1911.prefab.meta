@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: c9b9e947ef9b79241939d972eb37e060
+labels:
+- Firearm
+- Gun
+- Handgun
+- Pistol
+- Prop
+- Weapon
+timeCreated: 1504882105
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
