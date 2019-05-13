@@ -98,6 +98,7 @@ ModelImporter:
     7400018: lp_guy|Pickup
     7400020: lp_guy|Talk1
     7400022: lp_guy|OpenDoor
+    7400024: Test
     9500000: //RootNode
     13700000: lp_guy_mesh
     2186277476908879412: ImportLogs
@@ -126,38 +127,10 @@ ModelImporter:
     rigImportErrors: 
     rigImportWarnings: 
     animationImportErrors: 
-    animationImportWarnings: "\nClip 'lp_guy|Attack_1' has import animation warnings
-      that might lower retargeting quality:\nNote: Activate translation DOF on avatar
-      to improve retargeting quality.\n\t'chest' is inbetween humanoid transforms
-      and has rotation animation that will be discarded.\n\nClip 'lp_guy|Death' has
-      import animation warnings that might lower retargeting quality:\nNote: Activate
-      translation DOF on avatar to improve retargeting quality.\n\t'chest' is inbetween
-      humanoid transforms and has rotation animation that will be discarded.\n\t'leg.r'
-      has translation animation that will be discarded.\n\nClip 'lp_guy|Idle-loop'
-      has import animation warnings that might lower retargeting quality:\nNote: Activate
-      translation DOF on avatar to improve retargeting quality.\n\t'spine' has scale
-      animation that will be discarded.\n\nClip 'lp_guy|Jump' has import animation
-      warnings that might lower retargeting quality:\nNote: Activate translation DOF
-      on avatar to improve retargeting quality.\n\t'chest' is inbetween humanoid transforms
-      and has rotation animation that will be discarded.\n\nClip 'lp_guy|Jump_End'
-      has import animation warnings that might lower retargeting quality:\nNote: Activate
-      translation DOF on avatar to improve retargeting quality.\n\t'chest' is inbetween
-      humanoid transforms and has rotation animation that will be discarded.\n\nClip
-      'lp_guy|OpenDoor' has import animation warnings that might lower retargeting
-      quality:\nNote: Activate translation DOF on avatar to improve retargeting quality.\n\t'chest'
-      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
-      'lp_guy|Pickup' has import animation warnings that might lower retargeting quality:\nNote:
-      Activate translation DOF on avatar to improve retargeting quality.\n\t'chest'
-      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
-      'lp_guy|Run-loop' has import animation warnings that might lower retargeting
-      quality:\nNote: Activate translation DOF on avatar to improve retargeting quality.\n\t'chest'
-      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
-      'lp_guy|Talk1' has import animation warnings that might lower retargeting quality:\nNote:
-      Activate translation DOF on avatar to improve retargeting quality.\n\t'chest'
-      is inbetween humanoid transforms and has rotation animation that will be discarded.\n"
+    animationImportWarnings: 
     animationRetargetingWarnings: 
     animationDoRetargetingWarnings: 0
-    importAnimatedCustomProperties: 0
+    importAnimatedCustomProperties: 1
     importConstraints: 0
     animationCompression: 3
     animationRotationError: 0.5
