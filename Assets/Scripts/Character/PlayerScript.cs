@@ -33,8 +33,10 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool canAiming = true;
     private bool isAiming = false;
     private Coroutine aimingCoroutine;
-    private Transform spine; // 캐릭터 상체(조준 시 상체만 회전해야함)
     private Transform aimingTarget;
+
+    // 사격 관련 변수
+    private bool canShoot = false;
 
     [Header("Character Info")]
     public float conSpeed; // 현재속도
@@ -43,7 +45,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public float moveDeceleration; // 감속 정도
     public float jumpForce; // 점프력
     public float gravity; // 중력
-    
+
+    [Header("Character Parts")]
+    public Transform spine; // 조준 시 회전할 캐릭터의 상체
 
     private float resultGravity = 0;
 
@@ -54,9 +58,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
-
-        spine = animator.GetBoneTransform(HumanBodyBones.Chest);
-        aimingTarget = GameObject.Find("Target").GetComponent<Transform>();
+        
     }
 
     void Update()
@@ -69,9 +71,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         
         // 캐릭터 회전
         Rotate();
-
-        // 캐릭터 조준
-        Aiming();
+    }
+    private void LateUpdate()
+    {
+        if (canShoot)
+        {
+            spine.eulerAngles = new Vector3(camTrans.eulerAngles.x  + -7.305f, transform.eulerAngles.y, 0);
+        }
     }
 
     // ===================================================== public function ============================================================
@@ -85,50 +91,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     {
 
     }
-
-
-    public void BeforeMove()
-    {
-        // 이동 방향 계산
-        Vector3 frontVector = transform.forward * Input.GetAxis("Vertical");
-        Vector3 rightVector = transform.right * Input.GetAxis("Horizontal");
-        moveVector = (frontVector + rightVector).normalized;
-
-        if (moveVector.x == 0 && moveVector.z == 0 || isJumpEnd == true)
-        {
-            // 현재 속도가 점점 줄어든다.
-            conSpeed -= moveDeceleration;
-            if (conSpeed < 0)
-                conSpeed = 0;
-        }
-        // 그 외는 이동
-        else
-        {
-            // 현재 속도가 점점 늘어난다.
-            conSpeed += moveAcceleration;
-            if (conSpeed > maxSpeed)
-                conSpeed = maxSpeed;
-        }
-        moveVector = moveVector * conSpeed * Time.deltaTime;
-        // 이동 애니메이션 실행
-        animator.SetFloat("Speed", (conSpeed / maxSpeed) * 0.5f);
-
-
-        // 중력 계산
-        if (isJumping)
-            resultGravity -= gravity * Time.deltaTime;
-        else
-            resultGravity = -gravity;
-
-        //resultGravity = (conJump - gravity) * Time.deltaTime;
-        Vector3 gravityVector = new Vector3(0, resultGravity, 0);
-
-
-        Vector3 result = moveVector + gravityVector;
-        controller.Move(result);
-    }
-    
-
 
     public void Move()
     {
@@ -299,6 +261,10 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void Rotate()
     {
+        // 현재 조준 자세를 취하고 있는 상황이면 회전 불가
+        if (isAiming == true && canAiming == false)
+            return;
+
         // 현재 마우스 회전값 저장
         float xRot = Input.GetAxis("Mouse Y") * -1;
         float yRot = Input.GetAxis("Mouse X");
@@ -313,8 +279,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 카메라 좌우 회전(Y 값 회전)
         Vector3 temp = camTrans.eulerAngles;
         camTrans.eulerAngles = new Vector3(temp.x, transform.eulerAngles.y, temp.z);
-
-
+        
         // 카메라 상하 회전(X 값 회전)
         float cameraX = camTrans.eulerAngles.x;
         if (cameraX > 180)
@@ -322,26 +287,19 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 현재 카메라의 X Rotation 값에 따라 다른 처리
         if (cameraX > 25 && xRot > 0)
-            // 카메라 X Rotation의 최대값
-            cameraX = 25;
+        {
+
+        }
         else if (cameraX < -30 && xRot < 0)
-            // 카메라 X Rotation의 최소값
-            cameraX = -30;
+        {
+
+        }
         else
             // 그 외엔 회전
             camTrans.Rotate(xRot * Time.deltaTime * cam.xSensitivity, 0, 0);
     }
 
     // ===================================================== private function ============================================================
-
-    private void Aiming()
-    {
-        if(isAiming)
-        {
-            //spine.LookAt(aimingTarget.position); //플레이어의 상체부분이 타겟 위치 보기
-            
-        }
-    }
 
     // Key 입력 검사
     private void GetInput()
@@ -379,12 +337,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 if (isJumping)
                     return;
 
+                // 조준 정리가 끝날 때까지 다시 조준하는 행위를 금지 설정
+                canAiming = false;
+
                 // 조준 해제
                 if (isAiming)
                 {
-                    // 조준 정리가 끝날 때까지 다시 조준하는 행위를 금지 설정
-                    canAiming = false;
-
                     // 조준 종료
                     if (aimingCoroutine != null)
                         StopCoroutine(aimingCoroutine);
@@ -392,10 +350,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 }
                 // 조준 시작
                 else
-                {
-                    // 조준 준비가 끝날 때까지 다시 조준하는 행위를 금지 설정
-                    canAiming = false;
-                    
+                {   
                     // 조준 시작
                     if (aimingCoroutine != null)
                         StopCoroutine(aimingCoroutine);
@@ -464,6 +419,29 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
     }
 
+    private void Aiming()
+    {
+        float xRot = Input.GetAxis("Mouse Y") * -1;
+        Debug.Log(1);
+        // 조준 준비가 완료된 상태이면 마우스 이동에 따라 캐릭터 상체를 회전시켜서 조준
+
+        float spineX = spine.eulerAngles.x;
+        if (spineX > 180)
+            spineX = camTrans.eulerAngles.x % 360 - 360;
+
+        // 현재 카메라의 X Rotation 값에 따라 다른 처리
+        if (spineX > 25 && xRot > 0)
+            // 카메라 X Rotation의 최대값
+            spineX = 25;
+        else if (spineX < -30 && xRot < 0)
+            // 카메라 X Rotation의 최소값
+            spineX = -30;
+        else
+            // 그 외엔 회전
+            spine.Rotate(xRot * Time.deltaTime * cam.xSensitivity, 0, 0);
+
+    }
+
     // 조준 시작 코루틴
     private IEnumerator AimingStart()
     {
@@ -486,12 +464,17 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         while(conTime < maxTime)
         {
             camTrans.position = Vector3.Lerp(camTrans.position, transform.position, conTime);
+            camTrans.rotation = Quaternion.Lerp(camTrans.rotation, transform.rotation, conTime);
             Camera.main.transform.localPosition = Vector3.Lerp(Camera.main.transform.localPosition, cameraPos_Aiming, conTime);
             conTime += Time.deltaTime;
             yield return null;
         }
         camTrans.position = transform.position;
+        camTrans.rotation = transform.rotation;
         Camera.main.transform.localPosition = cameraPos_Aiming;
+
+        // 이제부터 좌클릭 시 사격 가능
+        canShoot = true;
 
         // 다시 우클릭을 하면 조준을 해제하도록 지정
         canAiming = true;
@@ -500,6 +483,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     // 조준 종료 코루틴
     private IEnumerator AimingEnd()
     {
+        // 이제부터 좌클릭 시 사격 불가능
+        canShoot = false;
+
         // 조준 종료 애니메이션 실행
         animator.SetTrigger("Move");
 
@@ -511,11 +497,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         while (conTime < maxTime)
         {
             camTrans.position = Vector3.Lerp(camTrans.position, cameraPos_Script, conTime);
+            camTrans.rotation = Quaternion.Lerp(camTrans.rotation, transform.rotation, conTime);
             Camera.main.transform.localPosition = Vector3.Lerp(Camera.main.transform.localPosition, cameraPos_Follwing, conTime);
             conTime += Time.deltaTime;
             yield return null;
         }
         camTrans.position = cameraPos_Script;
+        camTrans.rotation = transform.rotation;
         Camera.main.transform.localPosition = cameraPos_Follwing;
 
         // 카메라가 다시 플레이어를 따라다니도록 설정
