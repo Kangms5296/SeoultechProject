@@ -9,23 +9,22 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private CameraScript cam;
     private Transform camTrans;
 
-    // 플레이어 객체 물리 관련 컴포넌트
+    // 플레이어 컴포넌트
     private CharacterController controller;
-
-    // 플레이어 애니메이션
     private Animator animator;
 
     // 조작 가능 여부
-    bool canControl = true;
+    //private bool canControl = true;
 
     // Move 관련 벡터
-    float verticalSpeed;
-    float horizontalSpeed;
-    bool isFront = false;
-    bool isLeft = false;
-    Vector3 moveVector;
+    private float verticalSpeed;
+    private float horizontalSpeed;
+    private bool isFront = false;
+    private bool isLeft = false;
+    private Vector3 moveVector;
 
     // 점프 관련 변수
+    private bool canJumping = true;
     private bool isJumping = false;
     private bool isJumpEnd = false;
 
@@ -36,7 +35,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private Transform aimingTarget;
 
     // 사격 관련 변수
-    private bool canShoot = false;
+    private bool canShooting = false;
+    private bool isShooting = false;
 
     [Header("Character Info")]
     public float conSpeed; // 현재속도
@@ -48,6 +48,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     [Header("Character Parts")]
     public Transform spine; // 조준 시 회전할 캐릭터의 상체
+    public Transform chainShooter; // 체인을 발사하는 장치
 
     private float resultGravity = 0;
 
@@ -74,7 +75,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     }
     private void LateUpdate()
     {
-        if (canShoot)
+        if (canShooting)
         {
             spine.eulerAngles = new Vector3(camTrans.eulerAngles.x  + -7.305f, transform.eulerAngles.y, 0);
         }
@@ -265,6 +266,10 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (isAiming == true && canAiming == false)
             return;
 
+        // 현재 Chain을 발사한 상태이면 회전 불가
+        if (isShooting)
+            return;
+
         // 현재 마우스 회전값 저장
         float xRot = Input.GetAxis("Mouse Y") * -1;
         float yRot = Input.GetAxis("Mouse X");
@@ -307,13 +312,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 키보드 입력 확인
         if (Input.anyKey)
         {
-            if (canControl)
+            // 점프 키 클릭
+            if (Input.GetKeyDown(KeyCode.Space))
             {
-                // 점프 키 클릭
-                if (Input.GetKeyDown(KeyCode.Space))
+                if (CanProcessingInput(InputState.JUMPING))
                 {
-                    // 조작불능 선언
-                    canControl = false;
                     StartCoroutine(Jumping());
                 }
             }
@@ -322,24 +325,18 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (Input.GetMouseButtonDown(0))
         {
             // 조준 중인 위치로 Chain 발사
-            if(isAiming)
+            if(CanProcessingInput(InputState.SHOOTING))
             {
-
+                isShooting = true;
+                StartCoroutine(ShootingChain());
             }
             
         }
         // 마우스 우클릭 이벤트
         if (Input.GetMouseButtonDown(1))
         {
-            if (canAiming)
+            if (CanProcessingInput(InputState.AIMING))
             {
-                // 점프 중이면 불가능
-                if (isJumping)
-                    return;
-
-                // 조준 정리가 끝날 때까지 다시 조준하는 행위를 금지 설정
-                canAiming = false;
-
                 // 조준 해제
                 if (isAiming)
                 {
@@ -360,8 +357,44 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
     }
 
+    // 현재 상태를 체크하여 다음 상태로의 변경이 가능한지 확인
+    private enum InputState { JUMPING, AIMING, SHOOTING };
+    private bool CanProcessingInput(InputState nextState)
+    {
+        switch (nextState)
+        {
+            case InputState.JUMPING:
+                if (!canJumping)
+                    return false;
+                if (isAiming)
+                    return false;
+                if (isShooting)
+                    return false;
+
+                break;
+            case InputState.AIMING:
+                if (!canAiming)
+                    return false;
+                if (isJumping)
+                    return false;
+                if (isShooting)
+                    return false;
+
+                break;
+            case InputState.SHOOTING:
+                if (!canShooting)
+                    return false;
+                break;
+
+        }
+
+        return true;
+    }
+
     private IEnumerator Jumping()
     {
+        canJumping = false;
+
         // 점프 시작
         while (true)
         {
@@ -402,12 +435,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
                 // 점프 종료
                 isJumping = false;
-
-                // 조작 불능 해제
-                canControl = true;
+                canJumping = true;
 
                 
-
                 break;
             }
             else
@@ -419,34 +449,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
     }
 
-    private void Aiming()
-    {
-        float xRot = Input.GetAxis("Mouse Y") * -1;
-        Debug.Log(1);
-        // 조준 준비가 완료된 상태이면 마우스 이동에 따라 캐릭터 상체를 회전시켜서 조준
-
-        float spineX = spine.eulerAngles.x;
-        if (spineX > 180)
-            spineX = camTrans.eulerAngles.x % 360 - 360;
-
-        // 현재 카메라의 X Rotation 값에 따라 다른 처리
-        if (spineX > 25 && xRot > 0)
-            // 카메라 X Rotation의 최대값
-            spineX = 25;
-        else if (spineX < -30 && xRot < 0)
-            // 카메라 X Rotation의 최소값
-            spineX = -30;
-        else
-            // 그 외엔 회전
-            spine.Rotate(xRot * Time.deltaTime * cam.xSensitivity, 0, 0);
-
-    }
-
     // 조준 시작 코루틴
     private IEnumerator AimingStart()
     {
-        // 조준 행위 이외의 다른 행동을 금지
-        canControl = false;
+        // 조준 자세를 취할 때까지 조준 입력을 무시하도록 설정
+        canAiming = false;
 
         // 조준 시작 설정
         isAiming = true;
@@ -474,7 +481,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         Camera.main.transform.localPosition = cameraPos_Aiming;
 
         // 이제부터 좌클릭 시 사격 가능
-        canShoot = true;
+        canShooting = true;
+        animator.enabled = false;
 
         // 다시 우클릭을 하면 조준을 해제하도록 지정
         canAiming = true;
@@ -483,8 +491,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     // 조준 종료 코루틴
     private IEnumerator AimingEnd()
     {
+        // 조준 자세를 끝낼 때까지 조준 입력을 무시하도록 설정
+        canAiming = false;
+
         // 이제부터 좌클릭 시 사격 불가능
-        canShoot = false;
+        canShooting = false;
+        animator.enabled = true;
 
         // 조준 종료 애니메이션 실행
         animator.SetTrigger("Move");
@@ -514,9 +526,26 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 다시 우클릭을 하면 조준을 해제하도록 지정
         canAiming = true;
-
-        // 조준 행위 이외의 다른 행동을 금지를 해제
-        canControl = true;
     }
 
+
+    private IEnumerator ShootingChain()
+    {
+        float conTime = 0;
+        float maxTime = 0.4f;
+
+        // Chain 이 날라가는 시간동안 다른 행동 불가
+        isShooting = true;
+
+        while(conTime < maxTime)
+        {
+            chainShooter.localScale = new Vector3(1, 1 + 59 * (conTime / maxTime), 1);
+            conTime += Time.deltaTime;
+            yield return null;
+        }
+        chainShooter.localScale = new Vector3(1, 1, 1);
+
+        // Chain 이 다 날라갔으니 다른 행동 가능
+        isShooting = false;
+    }
 }
