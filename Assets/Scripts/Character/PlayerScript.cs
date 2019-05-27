@@ -22,6 +22,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool isFront = false;
     private bool isLeft = false;
     private Vector3 moveVector;
+    private bool isMoving = false;
 
     // 점프 관련 변수
     private bool canJumping = true;
@@ -47,6 +48,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public float gravity; // 중력
 
     [Header("Character Parts")]
+    public Transform body; // 이동 시 회전할 캐릭터의 몸
     public Transform spine; // 조준 시 회전할 캐릭터의 상체
     public Transform chainShooter; // 체인을 발사하는 장치
 
@@ -79,6 +81,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             spine.eulerAngles = new Vector3(camTrans.eulerAngles.x  + -7.305f, transform.eulerAngles.y, 0);
         }
+        if (isMoving)
+        {
+            body.eulerAngles = new Vector3(body.eulerAngles.x, body.eulerAngles.y + -10 * horizontalSpeed, body.eulerAngles.z);
+            spine.eulerAngles = new Vector3(spine.eulerAngles.x, spine.eulerAngles.y + 10 * horizontalSpeed, spine.eulerAngles.z);
+        }
     }
 
     // ===================================================== public function ============================================================
@@ -98,6 +105,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 점프 착지 직후에는 멈춤
         if (isJumpEnd == true)
         {
+            isMoving = false;
             if (isFront)
             {
                 verticalSpeed -= moveDeceleration * 5;
@@ -127,11 +135,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 점프를 하는 중간에는 방향을 바꿀 수 없음
         else if (isJumping)
         {
-
+            isMoving = false;
         }
         // 조준 중에는 서서히 이동을 멈춤
         else if(isAiming)
         {
+            isMoving = false;
             if (isFront)
             {
                 verticalSpeed -= moveDeceleration * 3;
@@ -160,6 +169,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
         else
         {
+            isMoving = true;
             // 앞뒤 이동계산
             if (Input.GetKey(KeyCode.W))
             {
