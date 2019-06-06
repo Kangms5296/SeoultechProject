@@ -33,7 +33,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool canAiming = true;
     private bool isAiming = false;
     private Coroutine aimingCoroutine;
-    private Transform aimingTarget;
 
     // 사격 관련 변수
     private bool canShooting = false;
@@ -83,8 +82,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
         if (isMoving)
         {
-            body.eulerAngles = new Vector3(body.eulerAngles.x, body.eulerAngles.y + -10 * horizontalSpeed, body.eulerAngles.z);
-            spine.eulerAngles = new Vector3(spine.eulerAngles.x, spine.eulerAngles.y + 10 * horizontalSpeed, spine.eulerAngles.z);
+            body.eulerAngles = new Vector3(body.eulerAngles.x, body.eulerAngles.y + -7 * horizontalSpeed, body.eulerAngles.z);
+            spine.eulerAngles = new Vector3(spine.eulerAngles.x, spine.eulerAngles.y + 7 * horizontalSpeed, spine.eulerAngles.z);
         }
     }
 

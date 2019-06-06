@@ -8,7 +8,7 @@ public class GameManager : MonoBehaviour
     public static float allSpeed;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         // 마우스 커서 삭제
         RemoveMouseCursor();
