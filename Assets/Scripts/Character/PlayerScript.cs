@@ -60,8 +60,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
-
-        Time.captureFramerate = 90;
+        
     }
 
     void Update()
@@ -261,7 +260,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
         Vector3 result = (moveVector + gravityVector);
-        controller.Move(result);
+        controller.Move(result * Time.deltaTime);
     }
 
 
