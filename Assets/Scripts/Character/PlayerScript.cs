@@ -80,11 +80,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             spine.eulerAngles = new Vector3(camTrans.eulerAngles.x  + -7.305f, transform.eulerAngles.y, 0);
         }
-        if (isMoving)
-        {
-            body.eulerAngles = new Vector3(body.eulerAngles.x, body.eulerAngles.y + -7 * horizontalSpeed, body.eulerAngles.z);
-            spine.eulerAngles = new Vector3(spine.eulerAngles.x, spine.eulerAngles.y + 7 * horizontalSpeed, spine.eulerAngles.z);
-        }
     }
 
     // ===================================================== public function ============================================================
@@ -107,26 +102,26 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             isMoving = false;
             if (isFront)
             {
-                verticalSpeed -= moveDeceleration * 5;
+                verticalSpeed -= moveDeceleration * 5 * Time.deltaTime;
                 if (verticalSpeed < 0)
                     verticalSpeed = 0;
 
             }
             else
             {
-                verticalSpeed += moveDeceleration * 5;
+                verticalSpeed += moveDeceleration * 5 * Time.deltaTime;
                 if (verticalSpeed > 0)
                     verticalSpeed = 0;
             }
             if (isLeft)
             {
-                horizontalSpeed -= moveDeceleration * 5;
+                horizontalSpeed -= moveDeceleration * 5 * Time.deltaTime;
                 if (horizontalSpeed < 0)
                     horizontalSpeed = 0;
             }
             else
             {
-                horizontalSpeed += moveDeceleration * 5;
+                horizontalSpeed += moveDeceleration * 5 * Time.deltaTime;
                 if (horizontalSpeed > 0)
                     horizontalSpeed = 0;
             }
@@ -142,26 +137,26 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             isMoving = false;
             if (isFront)
             {
-                verticalSpeed -= moveDeceleration * 3;
+                verticalSpeed -= moveDeceleration * 3 * Time.deltaTime;
                 if (verticalSpeed < 0)
                     verticalSpeed = 0;
 
             }
             else
             {
-                verticalSpeed += moveDeceleration * 3;
+                verticalSpeed += moveDeceleration * 3 * Time.deltaTime;
                 if (verticalSpeed > 0)
                     verticalSpeed = 0;
             }
             if (isLeft)
             {
-                horizontalSpeed -= moveDeceleration * 3;
+                horizontalSpeed -= moveDeceleration * 3 * Time.deltaTime;
                 if (horizontalSpeed < 0)
                     horizontalSpeed = 0;
             }
             else
             {
-                horizontalSpeed += moveDeceleration * 3;
+                horizontalSpeed += moveDeceleration * 3 * Time.deltaTime;
                 if (horizontalSpeed > 0)
                     horizontalSpeed = 0;
             }
@@ -172,7 +167,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // 앞뒤 이동계산
             if (Input.GetKey(KeyCode.W))
             {
-                verticalSpeed += moveAcceleration;
+                verticalSpeed += moveAcceleration * Time.deltaTime;
                 if (verticalSpeed > maxSpeed)
                     verticalSpeed = maxSpeed;
 
@@ -180,7 +175,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             }
             else if (Input.GetKey(KeyCode.S))
             {
-                verticalSpeed -= moveAcceleration;
+                verticalSpeed -= moveAcceleration * Time.deltaTime;
                 if (verticalSpeed < maxSpeed * -1 * 0.4f)
                     verticalSpeed = maxSpeed * -1 * 0.4f;
 
@@ -190,14 +185,14 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 if (isFront)
                 {
-                    verticalSpeed -= moveDeceleration;
+                    verticalSpeed -= moveDeceleration * Time.deltaTime;
                     if (verticalSpeed < 0)
                         verticalSpeed = 0;
 
                 }
                 else
                 {
-                    verticalSpeed += moveDeceleration;
+                    verticalSpeed += moveDeceleration * Time.deltaTime;
                     if (verticalSpeed > 0)
                         verticalSpeed = 0;
                 }
@@ -206,7 +201,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // 좌우 이동계산
             if (Input.GetKey(KeyCode.A))
             {
-                horizontalSpeed += moveAcceleration;
+                horizontalSpeed += moveAcceleration * Time.deltaTime;
                 if (horizontalSpeed > maxSpeed * 0.4f)
                     horizontalSpeed = maxSpeed * 0.4f;
 
@@ -214,7 +209,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             }
             else if (Input.GetKey(KeyCode.D))
             {
-                horizontalSpeed -= moveAcceleration;
+                horizontalSpeed -= moveAcceleration * Time.deltaTime;
                 if (horizontalSpeed < maxSpeed * -1 * 0.4f)
                     horizontalSpeed = maxSpeed * -1 * 0.4f;
 
@@ -224,13 +219,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 if (isLeft)
                 {
-                    horizontalSpeed -= moveDeceleration;
+                    horizontalSpeed -= moveDeceleration * Time.deltaTime;
                     if (horizontalSpeed < 0)
                         horizontalSpeed = 0;
                 }
                 else
                 {
-                    horizontalSpeed += moveDeceleration;
+                    horizontalSpeed += moveDeceleration * Time.deltaTime;
                     if (horizontalSpeed > 0)
                         horizontalSpeed = 0;
                 }
@@ -239,9 +234,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
         // 이동 속도에 따른 앞뒤 이동 벡터 계산
-        Vector3 verticalVector = transform.forward * verticalSpeed * Time.deltaTime;
+        Vector3 verticalVector = transform.forward * verticalSpeed;
         // 이동 속도에 따른 좌우 이동 벡터 계산
-        Vector3 horizontalVector = transform.right * -1 * horizontalSpeed * Time.deltaTime;
+        Vector3 horizontalVector = transform.right * -1 * horizontalSpeed;
         // 최종 이동 벡터 계산
         moveVector = (verticalVector + horizontalVector);
         //moveVector = new Vector3(-1 * horizontalSpeed , 0, verticalSpeed).normalized;
@@ -264,7 +259,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         Vector3 gravityVector = new Vector3(0, resultGravity, 0);
 
 
-        Vector3 result = moveVector + gravityVector;
+        Vector3 result = (moveVector + gravityVector);
         controller.Move(result);
     }
 
