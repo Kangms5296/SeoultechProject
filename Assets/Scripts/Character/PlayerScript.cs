@@ -78,7 +78,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     {
         if (canShooting)
         {
-            spine.eulerAngles = new Vector3(camTrans.eulerAngles.x  + -7.305f, transform.eulerAngles.y, 0);
+            spine.eulerAngles = new Vector3(camTrans.eulerAngles.x, transform.eulerAngles.y, 0);
         }
     }
 
@@ -131,36 +131,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             isMoving = false;
         }
-        // 조준 중에는 서서히 이동을 멈춤
-        else if(isAiming)
-        {
-            isMoving = false;
-            if (isFront)
-            {
-                verticalSpeed -= moveDeceleration * 3 * Time.deltaTime;
-                if (verticalSpeed < 0)
-                    verticalSpeed = 0;
 
-            }
-            else
-            {
-                verticalSpeed += moveDeceleration * 3 * Time.deltaTime;
-                if (verticalSpeed > 0)
-                    verticalSpeed = 0;
-            }
-            if (isLeft)
-            {
-                horizontalSpeed -= moveDeceleration * 3 * Time.deltaTime;
-                if (horizontalSpeed < 0)
-                    horizontalSpeed = 0;
-            }
-            else
-            {
-                horizontalSpeed += moveDeceleration * 3 * Time.deltaTime;
-                if (horizontalSpeed > 0)
-                    horizontalSpeed = 0;
-            }
-        }
         else
         {
             isMoving = true;
@@ -248,7 +219,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             conSpeed = Mathf.Abs(verticalSpeed);
         else
             conSpeed = Mathf.Abs(horizontalSpeed);
-        animator.SetFloat("Speed", (conSpeed / maxSpeed) * 0.5f);
+        animator.SetFloat("Speed", conSpeed / maxSpeed);
 
 
         // 중력 계산
@@ -465,12 +436,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 조준 시작 애니메이션 실행
         animator.SetTrigger("Aim");
 
-        // 카메라 연출 가능하도록 설정
-        cam.SetFollow(false);
-
         // 카메라 연출 시작(1초에 걸쳐 천천히 조준위치로 이동)
         float conTime = 0;
-        float maxTime = 0.5f;
+        float maxTime = 0.4f;
         Vector3 cameraPos_Aiming = new Vector3(0.6f, 0.8f, -0.8f);
         while(conTime < maxTime)
         {
@@ -486,7 +454,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 이제부터 좌클릭 시 사격 가능
         canShooting = true;
-        animator.enabled = false;
 
         // 다시 우클릭을 하면 조준을 해제하도록 지정
         canAiming = true;
@@ -500,16 +467,15 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 이제부터 좌클릭 시 사격 불가능
         canShooting = false;
-        animator.enabled = true;
 
         // 조준 종료 애니메이션 실행
         animator.SetTrigger("Move");
 
         // 카메라 연출
         float conTime = 0;
-        float maxTime = 0.5f;
+        float maxTime = 0.4f;
         Vector3 cameraPos_Script = new Vector3(transform.position.x, transform.position.y + 1.5f, transform.position.z);
-        Vector3 cameraPos_Follwing = new Vector3(0, 0, -2.5f);
+        Vector3 cameraPos_Follwing = new Vector3(0, 1.5f, -2.5f);
         while (conTime < maxTime)
         {
             camTrans.position = Vector3.Lerp(camTrans.position, cameraPos_Script, conTime);

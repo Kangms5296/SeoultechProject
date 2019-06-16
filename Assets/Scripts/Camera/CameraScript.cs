@@ -35,7 +35,7 @@ public class CameraScript : MonoBehaviour
     public void FollowPlayer()
     {
         if (canFollow)
-            transform.position = new Vector3(player.position.x, player.position.y + 1.5f, player.position.z);
+            transform.position = new Vector3(player.position.x, player.position.y, player.position.z);
     }
 
     public void SetFollow(bool value)
