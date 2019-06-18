@@ -22,7 +22,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool isFront = false;
     private bool isLeft = false;
     private Vector3 moveVector;
-    private bool isMoving = false;
 
     // 점프 관련 변수
     private bool canJumping = true;
@@ -38,6 +37,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool canShooting = false;
     private bool isShooting = false;
 
+    // Chain 관련 변수
+    private float beforeGravity;
+    private Vector3 targetPos;
+    private Coroutine chainCoroutine;
+    private bool isChainMoving;
+
     [Header("Character Info")]
     public float conSpeed; // 현재속도
     public float maxSpeed; // 최고 속도
@@ -50,6 +55,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public Transform body; // 이동 시 회전할 캐릭터의 몸
     public Transform spine; // 조준 시 회전할 캐릭터의 상체
     public Transform chainShooter; // 체인을 발사하는 장치
+    public Transform chain;
 
     private float resultGravity = 0;
 
@@ -74,6 +80,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 캐릭터 회전
         Rotate();
     }
+
     private void LateUpdate()
     {
         if (canShooting)
@@ -96,10 +103,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void Move()
     {
+        // Chain을 통한 이동중에는 이동 금지
+        if (isChainMoving)
+            return;
+
         // 점프 착지 직후에는 멈춤
         if (isJumpEnd == true)
         {
-            isMoving = false;
             if (isFront)
             {
                 verticalSpeed -= moveDeceleration * 5 * Time.deltaTime;
@@ -129,12 +139,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 점프를 하는 중간에는 방향을 바꿀 수 없음
         else if (isJumping)
         {
-            isMoving = false;
         }
-
         else
         {
-            isMoving = true;
             // 앞뒤 이동계산
             if (Input.GetKey(KeyCode.W))
             {
@@ -270,13 +277,41 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
 
         }
-        else if (cameraX < -30 && xRot < 0)
+        else if (cameraX < -40 && xRot < 0)
         {
 
         }
         else
             // 그 외엔 회전
             camTrans.Rotate(xRot * Time.deltaTime * cam.xSensitivity, 0, 0);
+    }
+
+
+
+    // 발사한 Chain이 target에 닿았다.
+    // 따라서 해당 Chain의 위치로 플레이어를 이동시킨다.
+    public void ReachChainToTarget(Vector3 targetPos)
+    {
+        chain.GetComponent<CapsuleCollider>().enabled = false;
+
+        beforeGravity = gravity;
+        gravity = 0;
+
+        isChainMoving = true;
+
+        // 도달할 위치 저장
+        this.targetPos = targetPos;
+        
+        animator.SetTrigger("Hang");
+
+        // 캐릭터 이동
+        if (chainCoroutine != null)
+        {
+            isShooting = false;
+            chainShooter.localScale = new Vector3(1, 1, 1);
+            StopCoroutine(chainCoroutine);
+        }
+        chainCoroutine = StartCoroutine(ChainMoving());
     }
 
     // ===================================================== private function ============================================================
@@ -299,11 +334,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 마우스 좌클릭 이벤트
         if (Input.GetMouseButtonDown(0))
         {
+            chain.GetComponent<CapsuleCollider>().enabled = true;
             // 조준 중인 위치로 Chain 발사
-            if(CanProcessingInput(InputState.SHOOTING))
+            if (CanProcessingInput(InputState.SHOOTING))
             {
-                isShooting = true;
-                StartCoroutine(ShootingChain());
+                if (chainCoroutine != null)
+                    StopCoroutine(chainCoroutine);
+                chainCoroutine = StartCoroutine(ShootingChain());
             }
             
         }
@@ -475,7 +512,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         float conTime = 0;
         float maxTime = 0.4f;
         Vector3 cameraPos_Script = new Vector3(transform.position.x, transform.position.y + 1.5f, transform.position.z);
-        Vector3 cameraPos_Follwing = new Vector3(0, 1.5f, -2.5f);
+        Vector3 cameraPos_Follwing = new Vector3(0, 1.2f, -2f);
         while (conTime < maxTime)
         {
             camTrans.position = Vector3.Lerp(camTrans.position, cameraPos_Script, conTime);
@@ -502,20 +539,42 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private IEnumerator ShootingChain()
     {
         float conTime = 0;
-        float maxTime = 0.4f;
+        float maxTime = 1f;
 
         // Chain 이 날라가는 시간동안 다른 행동 불가
         isShooting = true;
 
         while(conTime < maxTime)
         {
-            chainShooter.localScale = new Vector3(1, 1 + 59 * (conTime / maxTime), 1);
-            conTime += Time.deltaTime;
+            chainShooter.localScale = new Vector3(1, 1 + 199 * conTime, 1);
+            conTime += Time.deltaTime * 2f;
             yield return null;
         }
         chainShooter.localScale = new Vector3(1, 1, 1);
 
         // Chain 이 다 날라갔으니 다른 행동 가능
         isShooting = false;
+    }
+
+
+    IEnumerator ChainMoving()
+    {
+        float conSpeed = 5;
+
+        float temp = Vector3.Distance(transform.position, targetPos);
+        Debug.Log(temp);
+
+        RadialBlurImageEffect.instance.VisibleBlur(5);
+        while (Vector3.Distance(transform.position, targetPos) > 0.01f)
+        {
+            Debug.Log(Vector3.Distance(transform.position, targetPos));
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, conSpeed * Time.deltaTime);
+            conSpeed += Time.deltaTime * 300;
+            yield return null;
+        }
+        RadialBlurImageEffect.instance.VisibleBlur(0);
+        animator.SetTrigger("Hanged");
+
+        isChainMoving = false;
     }
 }
