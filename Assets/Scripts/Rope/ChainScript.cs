@@ -22,7 +22,6 @@ public class ChainScript : MonoBehaviour
                 Debug.Log('d');
                 Vector3 temp = new Vector3(0, 0, 0);
                 temp = rayHit.point;
-                player.ReachChainToTarget(temp);
             }
         }
     }
