@@ -3,18 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using Cinemachine;
 
 public class PlayerScript : MonoBehaviour, CharacterScript
 {
-    // 플레이어를 따라다닐 카메라
-    private CameraScript cam;
-    private Transform camTrans;
-
     // 플레이어 컴포넌트
     private CharacterController controller;
     private Animator animator;
 
-
+    [Header("Cinemachine")]
+    public CinemachineVirtualCamera cm_Tps;
+    public CinemachineVirtualCamera cm_Fps;
+    
     // 외부 오브젝트
     [Header("Outside Obejct")]
     public Image runImage;                      // 달리기 게이지 부족 위험 효과를 위한 Image 컴포넌트 캐싱
@@ -24,11 +24,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public ParticleSystem runninghDustEffect;   // 달릴때, 혹은 점프 후 착지에 사용할 먼지 Particle
     private float conDustDelay = 0;
-    private float maxDustDelay = 0.18f;
+    private const float maxDustDelay = 0.18f;
 
     private Coroutine runningSignCoroutine;
 
-
+    
     [Header("Character Info")]
     public float frontSpeed;                // 현재 전방 이동 속도
     public float backwardSpeed;             // 현재 후방 이동 속도
@@ -60,11 +60,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool isFront = false;           // 상하 중 어느 이동인지 확인
     private float horizontalSpeed = 0;      // 상하 이동 힘 확인
 
+    private bool isAiming = false;          // 조준중인가?
+    private Coroutine aimingCoroutine;      // 조준 애니메이션 코루틴
+
+
     void Start()
     {
-        cam = FindObjectOfType<CameraScript>();
-        camTrans = cam.transform;
-
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
 
@@ -231,8 +232,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
     public void Rotate()
-    {
-        // 현재 마우스 회전값 저장
+    {        // 현재 마우스 회전값 저장
         float xRot = Input.GetAxis("Mouse Y") * -1;
         float yRot = Input.GetAxis("Mouse X");
 
@@ -240,7 +240,10 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (xRot == 0 && yRot == 0)
             return;
 
+        // 캐릭터 좌우 회전(Y 값 회전)
+        transform.Rotate(0, yRot * Time.deltaTime * 100, 0);
 
+        /*
         // 캐릭터 좌우 회전(Y 값 회전)
         transform.Rotate(0, yRot * Time.deltaTime * cam.ySensitivity, 0);
         // 카메라 좌우 회전(Y 값 회전)
@@ -266,6 +269,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // 그 외엔 회전
             camTrans.Rotate(xRot * Time.deltaTime * cam.xSensitivity, 0, 0);
         }
+        */
     }
 
 
@@ -413,6 +417,38 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             isDownShift = false;
         }
+
+        // 마우스 우측 버튼 클릭
+        if(Input.GetMouseButtonDown(1))
+        {
+            // 기존에 조준하고 있었으면
+            if(isAiming)
+            {
+                // 조준 해제
+                isAiming = !isAiming;
+
+                // tps 모드의 카메라로 전환
+                cm_Tps.Priority = 10;
+                cm_Fps.Priority = 8;
+
+                // 조준하는 애니메이션 코루틴 수행
+                if (aimingCoroutine != null)
+                    StopCoroutine(aimingCoroutine);
+                aimingCoroutine = StartCoroutine(AimingEndCoroutine());
+            }
+            else
+            {
+                isAiming = !isAiming;
+
+                cm_Tps.Priority = 8;
+                cm_Fps.Priority = 10;
+
+                // 애니메이션 수정
+                if (aimingCoroutine != null)
+                    StopCoroutine(aimingCoroutine);
+                aimingCoroutine = StartCoroutine(AimingStartCoroutine());
+            }
+        }
     }
 
     private bool IsRunning()
@@ -421,6 +457,32 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             return true;
         else
             return false;
+    }
+
+    private IEnumerator AimingStartCoroutine()
+    {
+        float temp = 0;
+        while(temp < 1)
+        {
+            animator.SetLayerWeight(1, temp);
+
+            temp += Time.deltaTime * 3;
+            yield return null;
+        }
+        animator.SetLayerWeight(1, 1);
+    }
+
+    private IEnumerator AimingEndCoroutine()
+    {
+        float temp = 0;
+        while (temp < 1)
+        {
+            animator.SetLayerWeight(1, 1 - temp);
+
+            temp += Time.deltaTime * 3;
+            yield return null;
+        }
+        animator.SetLayerWeight(1, 0);
     }
 
     private IEnumerator IsGrounding()
