@@ -10,10 +10,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     // 플레이어 컴포넌트
     private CharacterController controller;
     private Animator animator;
-
-    [Header("Cinemachine")]
-    public CinemachineVirtualCamera cm_Tps;
-    public CinemachineVirtualCamera cm_Fps;
     
     // 외부 오브젝트
     [Header("Outside Obejct")]
@@ -21,10 +17,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public RectTransform runGauge;              // 달리기에 사용되는 게이지 이미지
     private float conRunGauge = 1;
-
-    public ParticleSystem runninghDustEffect;   // 달릴때, 혹은 점프 후 착지에 사용할 먼지 Particle
-    private float conDustDelay = 0;
-    private const float maxDustDelay = 0.18f;
 
     private Coroutine runningSignCoroutine;
 
@@ -44,6 +36,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private bool isGroundAfterJump = true;  // 점프 후 착지 확인
     private bool canJump = true;            // 점프 가능 유무 확인
     private bool isJump = false;            // 현재 점프중인가
+    public ParticleSystem runninghDustEffect;   // 점프 후 착지에 사용할 먼지 Particle
 
     public float gravity;                   // 중력 가속도
     private float resultGravity = 0;        // 현재 작용되는 중력
@@ -78,16 +71,121 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         GetInput();
 
         // 캐릭터 이동
-        Move(); 
-        
+        NewMove();
+
         // 캐릭터 회전
-        Rotate();
+        NewRotate();
 
         // 달리는 상황에서 게이지 감소
         Running();
     }
 
     // ===================================================== public function ============================================================
+
+    public void NewMove()
+    {
+        if (canMoving)
+        {
+            // 앞뒤 이동계산
+            if (Input.GetKey(KeyCode.W))
+            {
+                verticalSpeed += moveAcceleration * Time.deltaTime;
+                if (verticalSpeed > frontSpeed)
+                    verticalSpeed = frontSpeed;
+
+                isFront = true;
+                isVerticalMove = true;
+            }
+            else if (Input.GetKey(KeyCode.S))
+            {
+                verticalSpeed -= moveAcceleration * Time.deltaTime;
+                if (verticalSpeed < backwardSpeed * -1)
+                    verticalSpeed = backwardSpeed * -1;
+
+                isFront = false;
+                isVerticalMove = true;
+            }
+            else
+            {
+                if (isFront)
+                {
+                    verticalSpeed -= moveDeceleration * Time.deltaTime;
+                    if (verticalSpeed < 0)
+                        verticalSpeed = 0;
+                }
+                else
+                {
+                    verticalSpeed += moveDeceleration * Time.deltaTime;
+                    if (verticalSpeed > 0)
+                        verticalSpeed = 0;
+                }
+                isVerticalMove = false;
+            }
+
+            // 좌우 이동계산
+            if (Input.GetKey(KeyCode.A))
+            {
+                horizontalSpeed += moveAcceleration * Time.deltaTime * 1.5f;
+                if (horizontalSpeed > sideSpeed)
+                    horizontalSpeed = sideSpeed;
+
+                isLeft = true;
+                isHorizontalMove = true;
+            }
+            else if (Input.GetKey(KeyCode.D))
+            {
+                horizontalSpeed -= moveAcceleration * Time.deltaTime * 1.5f;
+                if (horizontalSpeed < sideSpeed * -1)
+                    horizontalSpeed = sideSpeed * -1;
+
+                isLeft = false;
+                isHorizontalMove = true;
+            }
+            else
+            {
+                if (isLeft)
+                {
+                    horizontalSpeed -= moveDeceleration * Time.deltaTime * 1.5f;
+                    if (horizontalSpeed < 0)
+                        horizontalSpeed = 0;
+                }
+                else
+                {
+                    horizontalSpeed += moveDeceleration * Time.deltaTime * 1.5f;
+                    if (horizontalSpeed > 0)
+                        horizontalSpeed = 0;
+                }
+
+                isHorizontalMove = false;
+            }
+        }
+
+        isMoving = isVerticalMove || isHorizontalMove;
+
+        // 이동 속도에 따른 앞뒤 이동 벡터 계산
+        Vector3 verticalVector = Vector3.forward * verticalSpeed;
+        // 이동 속도에 따른 좌우 이동 벡터 계산
+        Vector3 horizontalVector = Vector3.right * -1 * horizontalSpeed;
+        // 벡터의 크기 계산
+        float moveMaginitude = (verticalVector + horizontalVector).magnitude > runSpeed ? runSpeed : (verticalVector + horizontalVector).magnitude;
+        // 최종 이동 벡터 계산
+        Vector3 moveVector = (verticalVector + horizontalVector).normalized * moveMaginitude;
+        
+
+        // 중력 계산
+        Vector3 gravityVector = new Vector3(0, resultGravity, 0);
+
+
+        // 최종 값을 이용하여 이동
+        Vector3 result = (moveVector + gravityVector);
+        controller.Move(result * Time.deltaTime);
+    }
+
+    public void NewRotate()
+    {
+        Vector2 temp = new Vector2(horizontalSpeed, verticalSpeed);
+        transform.rotation = Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, temp).eulerAngles.z, 0);
+    }
 
     public void Move()
     {
@@ -241,7 +339,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             return;
 
         // 캐릭터 좌우 회전(Y 값 회전)
-        transform.Rotate(0, yRot * Time.deltaTime * 100, 0);
+        transform.Rotate(0, yRot * Time.deltaTime * 60, 0);
 
         /*
         // 캐릭터 좌우 회전(Y 값 회전)
@@ -307,14 +405,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
                     // 캐릭터가 힘들어서 걷는 속도로 늦춰진다.
                     isDownShift = false;
-                }
-
-                // 이동 먼지효과 재생
-                conDustDelay += Time.deltaTime;
-                if(conDustDelay > maxDustDelay)
-                {
-                    conDustDelay = 0;
-                    runninghDustEffect.Emit(1);
                 }
             }
         }
@@ -427,10 +517,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 // 조준 해제
                 isAiming = !isAiming;
 
-                // tps 모드의 카메라로 전환
-                cm_Tps.Priority = 10;
-                cm_Fps.Priority = 8;
-
                 // 조준하는 애니메이션 코루틴 수행
                 if (aimingCoroutine != null)
                     StopCoroutine(aimingCoroutine);
@@ -439,9 +525,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             else
             {
                 isAiming = !isAiming;
-
-                cm_Tps.Priority = 8;
-                cm_Fps.Priority = 10;
 
                 // 애니메이션 수정
                 if (aimingCoroutine != null)
