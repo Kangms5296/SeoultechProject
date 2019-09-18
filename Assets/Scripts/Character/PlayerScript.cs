@@ -5,76 +5,86 @@ using UnityEngine.UI;
 using System;
 using Cinemachine;
 
+public enum Weapontype { None, Swing, Shooting, Throwing};
+
 public class PlayerScript : MonoBehaviour, CharacterScript
 {
     // 플레이어 컴포넌트
     private CharacterController controller;
     private Animator animator;
-    
-    // 외부 오브젝트
-    [Header("Outside Obejct")]
-    public Image runImage;                      // 달리기 게이지 부족 위험 효과를 위한 Image 컴포넌트 캐싱
 
-    public RectTransform runGauge;              // 달리기에 사용되는 게이지 이미지
-    private float conRunGauge = 1;
+    [Header("Outside Object Caching")]
+    public ParticleSystem dustParticle;     // 점프 후 착지에 사용할 먼지 Particle
+    public MeleeWeaponTrail weaponTrail;    // 무기를 휘두를 때 나타나는 잔상 효과
 
-    private Coroutine runningSignCoroutine;
+    // 상태 변화 가능유무 2차배열
+    private bool[,] CanChangeAction;
+    private int conAction = 0;
 
-    
     [Header("Character Info")]
-    public float frontSpeed;                // 현재 전방 이동 속도
-    public float backwardSpeed;             // 현재 후방 이동 속도
-    public float sideSpeed;                 // 현재 옆 이동 속도
+    private bool isMoving = false;              // 현재 이동중인가
+    private bool canRotate = true;              // 이동간 회전이 가능한가
+    public float conMaxSpeed;                   // 현재 최대 속도
+    public float walkMaxSpeed;                  // 최대 걷는 속도
+    public float runMaxSpeed;                   // 최대 뛰는 속도
+    
+    private bool isDownShift;                   // 현재 쉬프트를 누르는중인가
+    public float moveAcceleration;              // 가속 정도
+    public float moveDeceleration;              // 감속 정도
+    
+    public float jumpForce;                     // 점프력
+    private bool isGroundAfterJump = true;      // 점프 후 착지 확인
+    
+    private bool isVerticalMove = false;        // 좌우 이동 여부 확인
+    private bool isLeft = false;                // 좌우 중 어느 이동인지 확인
+    private float verticalSpeed = 0;            // 좌우 이동 힘 확인
 
-    public float walkSpeed;                 // 전방 기본 걷는 속도
-    public float runSpeed;                  // 전방 기본 뛰는 속도
+    private bool isHorizontalMove = false;      // 상하 이동 여부 확인
+    private bool isFront = false;               // 상하 중 어느 이동인지 확인
+    private float horizontalSpeed = 0;          // 상하 이동 힘 확인
+    
+    private float continuousAttackJudgmentConTime;          // 연속 공격 판정
+    public float continuousAttackJudgmentMaxTime;           // 연속 공격 판정 최대 시간
+    private bool canContinuousAttack = false;               // 연속 공격 판정 내 공격 버튼을 눌렀는가?
+    private Coroutine continuousAttackJudgmentCoroutine;    // 연속 공격 판정 코루틴
+    
+    private Weapontype weapontype = Weapontype.None;        // 현재 사용하는 무기의 종류
+    private bool isUsingWeaponTrail = false;                // 현재 사용하는 무기가 WeaponTrail을 사용하는가?
 
-    public float moveAcceleration;          // 가속 정도
-    public float moveDeceleration;          // 감속 정도
-
-    public float jumpForce;                 // 점프력
-    private bool isGroundAfterJump = true;  // 점프 후 착지 확인
-    private bool canJump = true;            // 점프 가능 유무 확인
-    private bool isJump = false;            // 현재 점프중인가
-    public ParticleSystem runninghDustEffect;   // 점프 후 착지에 사용할 먼지 Particle
-
-    public float gravity;                   // 중력 가속도
-    private float resultGravity = 0;        // 현재 작용되는 중력
-
-    private bool isMoving = false;          // 현재 이동중인가
-    private bool canMoving = true;          // 현재 이동할 수 있는가
-    private bool isDownShift;               // 현재 쉬프트를 누르는중인가
-
-    private bool isVerticalMove = false;    // 좌우 이동 여부 확인
-    private bool isLeft = false;            // 좌우 중 어느 이동인지 확인
-    private float verticalSpeed = 0;        // 좌우 이동 힘 확인
-
-    private bool isHorizontalMove = false;  // 상하 이동 여부 확인
-    private bool isFront = false;           // 상하 중 어느 이동인지 확인
-    private float horizontalSpeed = 0;      // 상하 이동 힘 확인
-
-    private bool isAiming = false;          // 조준중인가?
-    private Coroutine aimingCoroutine;      // 조준 애니메이션 코루틴
-
+    public float moveMaginitude = 0;            // 이동 힘
+    private Vector3 beforeMove  = Vector3.zero; // 이전 프레임에서의 이동 벡터
+    private Vector3 newMove     = Vector3.zero; // 현재 프레임에서의 이동 벡터
+    private Vector3 moveVector  = Vector3.zero; // 이전과 현재 프레임에서의 이동 벡터를 보간하여 얻은 최종 이동 벡터
+    
+    public float gravity;                       // 중력 가속도
+    private float resultGravity = 0;            // 현재 작용되는 중력
 
     void Start()
     {
+        CanChangeAction = new bool[4, 4]
+        {
+            //  Move         Jump        Attack     Running
+            {   true,        true,       true ,     true }, // Move     <= 현재 이동을 하는 중 ~이 가능한가?
+            {   false,       false,      false,     false}, // Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   false,       false,      false,     false}, // Attack   <= 현재 공격을 하는 중 ~이 가능한가?
+            {   true,        false,      false,     true }, // Running  <= 이 배열은 쓰이지 않는다.
+        };
+
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
 
         StartCoroutine(IsGrounding());
+        StartCoroutine(ContinuousAttackJudgment());
     }
 
+    
     void Update()
     {
         // 입력 검사
         GetInput();
 
         // 캐릭터 이동
-        NewMove();
-
-        // 캐릭터 회전
-        NewRotate();
+        Move();
 
         // 달리는 상황에서 게이지 감소
         Running();
@@ -82,130 +92,26 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     // ===================================================== public function ============================================================
 
-    public void NewMove()
-    {
-        if (canMoving)
-        {
-            // 앞뒤 이동계산
-            if (Input.GetKey(KeyCode.W))
-            {
-                verticalSpeed += moveAcceleration * Time.deltaTime;
-                if (verticalSpeed > frontSpeed)
-                    verticalSpeed = frontSpeed;
-
-                isFront = true;
-                isVerticalMove = true;
-            }
-            else if (Input.GetKey(KeyCode.S))
-            {
-                verticalSpeed -= moveAcceleration * Time.deltaTime;
-                if (verticalSpeed < backwardSpeed * -1)
-                    verticalSpeed = backwardSpeed * -1;
-
-                isFront = false;
-                isVerticalMove = true;
-            }
-            else
-            {
-                if (isFront)
-                {
-                    verticalSpeed -= moveDeceleration * Time.deltaTime;
-                    if (verticalSpeed < 0)
-                        verticalSpeed = 0;
-                }
-                else
-                {
-                    verticalSpeed += moveDeceleration * Time.deltaTime;
-                    if (verticalSpeed > 0)
-                        verticalSpeed = 0;
-                }
-                isVerticalMove = false;
-            }
-
-            // 좌우 이동계산
-            if (Input.GetKey(KeyCode.A))
-            {
-                horizontalSpeed += moveAcceleration * Time.deltaTime * 1.5f;
-                if (horizontalSpeed > sideSpeed)
-                    horizontalSpeed = sideSpeed;
-
-                isLeft = true;
-                isHorizontalMove = true;
-            }
-            else if (Input.GetKey(KeyCode.D))
-            {
-                horizontalSpeed -= moveAcceleration * Time.deltaTime * 1.5f;
-                if (horizontalSpeed < sideSpeed * -1)
-                    horizontalSpeed = sideSpeed * -1;
-
-                isLeft = false;
-                isHorizontalMove = true;
-            }
-            else
-            {
-                if (isLeft)
-                {
-                    horizontalSpeed -= moveDeceleration * Time.deltaTime * 1.5f;
-                    if (horizontalSpeed < 0)
-                        horizontalSpeed = 0;
-                }
-                else
-                {
-                    horizontalSpeed += moveDeceleration * Time.deltaTime * 1.5f;
-                    if (horizontalSpeed > 0)
-                        horizontalSpeed = 0;
-                }
-
-                isHorizontalMove = false;
-            }
-        }
-
-        isMoving = isVerticalMove || isHorizontalMove;
-
-        // 이동 속도에 따른 앞뒤 이동 벡터 계산
-        Vector3 verticalVector = Vector3.forward * verticalSpeed;
-        // 이동 속도에 따른 좌우 이동 벡터 계산
-        Vector3 horizontalVector = Vector3.right * -1 * horizontalSpeed;
-        // 벡터의 크기 계산
-        float moveMaginitude = (verticalVector + horizontalVector).magnitude > runSpeed ? runSpeed : (verticalVector + horizontalVector).magnitude;
-        // 최종 이동 벡터 계산
-        Vector3 moveVector = (verticalVector + horizontalVector).normalized * moveMaginitude;
-        
-
-        // 중력 계산
-        Vector3 gravityVector = new Vector3(0, resultGravity, 0);
-
-
-        // 최종 값을 이용하여 이동
-        Vector3 result = (moveVector + gravityVector);
-        controller.Move(result * Time.deltaTime);
-    }
-
-    public void NewRotate()
-    {
-        Vector2 temp = new Vector2(horizontalSpeed, verticalSpeed);
-        transform.rotation = Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, temp).eulerAngles.z, 0);
-    }
 
     public void Move()
     {
-        if (canMoving)
+        if (CanChangeAction[conAction , 0])
         {
             // 앞뒤 이동계산
             if (Input.GetKey(KeyCode.W))
             {
-                verticalSpeed += moveAcceleration * Time.deltaTime;
-                if (verticalSpeed > frontSpeed)
-                    verticalSpeed = frontSpeed;
+                verticalSpeed += moveAcceleration;
+                if (verticalSpeed > conMaxSpeed)
+                    verticalSpeed = conMaxSpeed;
 
                 isFront = true;
                 isVerticalMove = true;
             }
             else if (Input.GetKey(KeyCode.S))
             {
-                verticalSpeed -= moveAcceleration * Time.deltaTime;
-                if (verticalSpeed < backwardSpeed * -1)
-                    verticalSpeed = backwardSpeed * -1;
+                verticalSpeed -= moveAcceleration;
+                if (verticalSpeed < conMaxSpeed * -1)
+                    verticalSpeed = conMaxSpeed * -1;
 
                 isFront = false;
                 isVerticalMove = true;
@@ -214,13 +120,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 if (isFront)
                 {
-                    verticalSpeed -= moveDeceleration * Time.deltaTime;
+                    verticalSpeed -= moveDeceleration;
                     if (verticalSpeed < 0)
                         verticalSpeed = 0;
                 }
                 else
                 {
-                    verticalSpeed += moveDeceleration * Time.deltaTime;
+                    verticalSpeed += moveDeceleration;
                     if (verticalSpeed > 0)
                         verticalSpeed = 0;
                 }
@@ -230,18 +136,18 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // 좌우 이동계산
             if (Input.GetKey(KeyCode.A))
             {
-                horizontalSpeed += moveAcceleration * Time.deltaTime * 1.5f;
-                if (horizontalSpeed > sideSpeed)
-                    horizontalSpeed = sideSpeed;
+                horizontalSpeed += moveAcceleration;
+                if (horizontalSpeed > conMaxSpeed)
+                    horizontalSpeed = conMaxSpeed;
 
                 isLeft = true;
                 isHorizontalMove = true;
             }
             else if (Input.GetKey(KeyCode.D))
             {
-                horizontalSpeed -= moveAcceleration * Time.deltaTime * 1.5f;
-                if (horizontalSpeed < sideSpeed * -1)
-                    horizontalSpeed = sideSpeed * -1;
+                horizontalSpeed -= moveAcceleration;
+                if (horizontalSpeed < conMaxSpeed * -1)
+                    horizontalSpeed = conMaxSpeed * -1;
 
                 isLeft = false;
                 isHorizontalMove = true;
@@ -250,13 +156,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 if (isLeft)
                 {
-                    horizontalSpeed -= moveDeceleration * Time.deltaTime * 1.5f;
+                    horizontalSpeed -= moveDeceleration;
                     if (horizontalSpeed < 0)
                         horizontalSpeed = 0;
                 }
                 else
                 {
-                    horizontalSpeed += moveDeceleration * Time.deltaTime * 1.5f;
+                    horizontalSpeed += moveDeceleration;
                     if (horizontalSpeed > 0)
                         horizontalSpeed = 0;
                 }
@@ -264,117 +170,134 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 isHorizontalMove = false;
             }
         }
-        else
+        isMoving = isHorizontalMove || isVerticalMove;
+
+
+
+        // 이동 방향 계산
+        newMove = Vector3.forward * verticalSpeed + Vector3.left * horizontalSpeed;
+        moveVector = Vector3.Lerp(beforeMove, newMove, Time.smoothDeltaTime * 20);
+
+
+
+        // 이동 크기 계산
+        moveMaginitude = moveVector.magnitude > conMaxSpeed ? conMaxSpeed : moveVector.magnitude;
+        animator.SetFloat("Speed", moveMaginitude / runMaxSpeed);
+
+
+
+        // 이전 프레임과 반대 방향으로 방향을 바꾸면 순간적으로 큰 감속
+        if (Vector3.Dot(beforeMove, newMove) < 0)
+            moveMaginitude = moveMaginitude / 5;
+        beforeMove = newMove;
+
+
+        // 이동 방향으로 회전
+        if (canRotate && isMoving)
         {
-            /*
-            if (isFront)
-            {
-                verticalSpeed -= moveDeceleration * Time.deltaTime;
-                if (verticalSpeed < 0)
-                    verticalSpeed = 0;
-            }
-            else
-            {
-                verticalSpeed += moveDeceleration * Time.deltaTime;
-                if (verticalSpeed > 0)
-                    verticalSpeed = 0;
-            }
-            isVerticalMove = false;
-
-            if (isLeft)
-            {
-                horizontalSpeed -= moveDeceleration * Time.deltaTime * 1.5f;
-                if (horizontalSpeed < 0)
-                    horizontalSpeed = 0;
-            }
-            else
-            {
-                horizontalSpeed += moveDeceleration * Time.deltaTime * 1.5f;
-                if (horizontalSpeed > 0)
-                    horizontalSpeed = 0;
-            }
-
-            isHorizontalMove = false;
-            */
+            Vector2 temp = new Vector2(horizontalSpeed, verticalSpeed);
+            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, temp).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
         }
-        isMoving = isVerticalMove || isHorizontalMove;
-
-        // 이동 속도에 따른 앞뒤 이동 벡터 계산
-        Vector3 verticalVector = transform.forward * verticalSpeed;
-        // 이동 속도에 따른 좌우 이동 벡터 계산
-        Vector3 horizontalVector = transform.right * -1 * horizontalSpeed;
-        // 벡터의 크기 계산
-        float moveMaginitude = (verticalVector + horizontalVector).magnitude > runSpeed ? runSpeed : (verticalVector + horizontalVector).magnitude;
-        // 최종 이동 벡터 계산
-        Vector3 moveVector = (verticalVector + horizontalVector).normalized * moveMaginitude;
-
-
-        // 앞뒤 이동에 따른 애니메이션 전환
-        if (isFront)
-            animator.SetFloat("Vertical", verticalSpeed / walkSpeed);
-        else
-            animator.SetFloat("Vertical", verticalSpeed / backwardSpeed);
-        // 좌우 이동에 따른 애니메이션 전환
-        animator.SetFloat("Horizontal", -horizontalSpeed / sideSpeed);
-
-
-        // 중력 계산
-        Vector3 gravityVector = new Vector3(0, resultGravity, 0);
-
-
-        // 최종 값을 이용하여 이동
-        Vector3 result = (moveVector + gravityVector);
-        controller.Move(result * Time.deltaTime);
-    }
 
 
 
-    public void Rotate()
-    {        // 현재 마우스 회전값 저장
-        float xRot = Input.GetAxis("Mouse Y") * -1;
-        float yRot = Input.GetAxis("Mouse X");
-
-        // 마우스 이동x
-        if (xRot == 0 && yRot == 0)
-            return;
-
-        // 캐릭터 좌우 회전(Y 값 회전)
-        transform.Rotate(0, yRot * Time.deltaTime * 60, 0);
-
-        /*
-        // 캐릭터 좌우 회전(Y 값 회전)
-        transform.Rotate(0, yRot * Time.deltaTime * cam.ySensitivity, 0);
-        // 카메라 좌우 회전(Y 값 회전)
-        Vector3 temp = camTrans.eulerAngles;
-        camTrans.eulerAngles = new Vector3(temp.x, transform.eulerAngles.y, temp.z);
-
-        // 카메라 상하 회전(X 값 회전)
-        float cameraX = camTrans.eulerAngles.x;
-        if (cameraX > 180)
-            cameraX = camTrans.eulerAngles.x % 360 - 360;
-
-        // 카메라의 X Rotation 값 최대 값 제한
-        if (cameraX > 25 && xRot > 0)
-        {
-
-        }
-        else if (cameraX < -75 && xRot < 0)
-        {
-
-        }
-        else
-        {
-            // 그 외엔 회전
-            camTrans.Rotate(xRot * Time.deltaTime * cam.xSensitivity, 0, 0);
-        }
-        */
+        // 이동
+        Vector3 moveResult = (moveVector.normalized * moveMaginitude + Vector3.up * resultGravity) * Time.smoothDeltaTime;
+        controller.Move(moveResult);
     }
 
 
     public void Attack()
     {
+        // 현재 상태에서 공격할 수 있다.
+        if (CanChangeAction[conAction, 2])
+        {
+            // 기존의 이동을 멈춘다.
+            StopMove();
+
+
+            // 무기 타입에 따라..
+            switch (weapontype)
+            {
+                // 무기가 없다.(주먹질)
+                case Weapontype.None:
+                    animator.SetTrigger("Punch");
+                    conAction = 2;
+
+                    // 그 외엔 조금 이동
+                    StartCoroutine(AttackMovingCoroutine(0.3f));
+
+                    break;
+
+
+                // 몽둥이, 검 등의 무기
+                case Weapontype.Swing:
+                    // 무기 잔상 효과 On
+                    WeaponTrailOn();
+
+                    // 공격 시 전방 이동
+                    if (IsRunning())
+                    {
+                        animator.SetTrigger("Swing");
+                        conAction = 2;
+
+                        // 최고 속도로 달리는 상황이면 앞으로 돌진
+                        StartCoroutine(AttackMovingCoroutine(4f));
+                    }
+                    else
+                    {
+                        animator.SetTrigger("Swing");
+                        conAction = 2;
+
+                        // 그 외엔 조금 이동
+                        StartCoroutine(AttackMovingCoroutine(0.5f));
+                    }
+                    break;
+            }
+
+        }
+
+
 
     }
+
+    public void AttackEnd()
+    {
+        if(canContinuousAttack)
+        {
+            // 무기 타입에 따라..
+            switch (weapontype)
+            {
+                // 무기가 없다.(주먹질)
+                case Weapontype.None:
+                    animator.SetTrigger("Punch");
+
+                    // 그 외엔 조금 이동
+                    StartCoroutine(AttackMovingCoroutine(0.3f));
+
+                    break;
+
+
+                // 몽둥이, 검 등의 무기
+                case Weapontype.Swing:
+                    animator.SetTrigger("Swing");
+
+                    // 그 외엔 조금 이동
+                    StartCoroutine(AttackMovingCoroutine(0.5f));
+
+                    break;
+            }
+        }
+        else
+        {
+            animator.SetTrigger("Move");
+            conAction = 0;
+
+            if(isUsingWeaponTrail)
+                WeaponTrailOff();
+        }
+    }
+    
 
     public void Damaged()
     {
@@ -383,86 +306,53 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void Running()
     {
-        // isDownShift : 쉬프트를 누르는지 점검
-        // isVerticalMove : 앞뒤 이동인가
-        // isFront : 전방 이동인가
-        if (isDownShift && isFront && isVerticalMove)
+        if (!CanChangeAction[conAction, 3])
+            return;
+
+        // 쉬프트를 누르는지 점검
+        if (isDownShift && isMoving)
         {
             // 점점 최고 속도를 올린다.
-            if (frontSpeed < runSpeed)
-                frontSpeed += moveAcceleration * Time.deltaTime;
+            if (conMaxSpeed < runMaxSpeed)
+                conMaxSpeed += moveAcceleration * Time.smoothDeltaTime * 20;
             else
-                frontSpeed = runSpeed;
-
-            // 점프중이 아니면..
-            if (!isJump)
-            {
-                // 게이지 감소
-                conRunGauge -= Time.deltaTime * 0.2f;
-                if (conRunGauge < 0)
-                {
-                    conRunGauge = 0;
-
-                    // 캐릭터가 힘들어서 걷는 속도로 늦춰진다.
-                    isDownShift = false;
-                }
-            }
+                conMaxSpeed = runMaxSpeed;
         }
         else
         {
             // 점점 최고 속도를 내린다.
-            if (frontSpeed > walkSpeed)
-                frontSpeed -= moveDeceleration * Time.deltaTime;
+            if (conMaxSpeed > walkMaxSpeed)
+                conMaxSpeed -= moveDeceleration * Time.smoothDeltaTime * 20;
             else
-                frontSpeed = walkSpeed;
-
-            // 게이지 증가
-            if(isMoving)
-                conRunGauge += Time.deltaTime * 0.1f;
-            else
-                conRunGauge += Time.deltaTime * 0.25f;
-
-            if (conRunGauge > 1)
-                conRunGauge = 1;
+                conMaxSpeed = walkMaxSpeed;
         }
-
-        runGauge.localScale = new Vector3(conRunGauge, 1, 1);
-        animator.SetFloat("Tired", 1 - conRunGauge);
-
-        if (conRunGauge < 0.4f && runningSignCoroutine == null)
-            runningSignCoroutine = StartCoroutine(RunningGaugeSign());
     }
 
     public void JumpStart()
     {
-        // 점프간 점프입력 및 이동 금지
-        canJump = false;
-        canMoving = false;
-        isJump = true;
-        
+        // 점프간 이동 금지
+        isVerticalMove = false;
+        isHorizontalMove = false;
+
         // 점프 후 땅에 착지하는지 확인
         isGroundAfterJump = false;
 
         // 어느정도 빠른 속도로 달리는 상황에서의 점프
         if (IsRunning())
         {
+            // 점프 시작
             animator.SetTrigger("JumpRunning");
+            conAction = 1;
 
             // 위로 힘을 준다.
             resultGravity += jumpForce * 1.3f;
-
-            // 달리기 게이지가 줄어든다
-            conRunGauge -= 0.1f;
-            if (conRunGauge < 0)
-                conRunGauge = 0;
-
-
         }
         // 멈춰있거나 걷는 상황에서의 점프
         else
         {
             // 점프 시작
             animator.SetTrigger("JumpStart");
+            conAction = 1;
 
             // 위로 힘을 준다.
             resultGravity += jumpForce;
@@ -471,101 +361,103 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void JumpEnd()
     {
-        // 캐릭터 이동 가능
-        canMoving = true;
-
-        // 다시 점프 가능하도록 설정
-        canJump = true;
-        
         // 이동 애니메이션 실행
         animator.SetTrigger("Move");
+        conAction = 0;
     }
 
-    // ===================================================== private function ============================================================
+    public void WeaponTrailOn()
+    {
+        isUsingWeaponTrail = true;
+        weaponTrail.Emit = true;
+    }
+
+    public void WeaponTrailOff()
+    {
+        isUsingWeaponTrail = false;
+        weaponTrail.Emit = false;
+    }
     
+
+    // ===================================================== private function ============================================================
+
 
     // Key 입력 검사
     private void GetInput()
     {
-        // 점프 키 클릭
+        // 스페이스바 클릭(점프)
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if(canJump)
+            if(CanChangeAction[conAction, 1])
             {
                 JumpStart();
             }
         }
 
-        // Shift 키 버튼 다운
+        // Shift 키 버튼 다운(달리기 시작)
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
             isDownShift = true;
         }
 
-        // Shift 키 버튼 업
+        // Shift 키 버튼 업(달리기 종료)
         if (Input.GetKeyUp(KeyCode.LeftShift))
         {
             isDownShift = false;
         }
 
-        // 마우스 우측 버튼 클릭
-        if(Input.GetMouseButtonDown(1))
+        // 마우스 왼쪽 키 클릭(공격)
+        if (Input.GetMouseButtonDown(0))
         {
-            // 기존에 조준하고 있었으면
-            if(isAiming)
-            {
-                // 조준 해제
-                isAiming = !isAiming;
+            continuousAttackJudgmentConTime = continuousAttackJudgmentMaxTime;
+            if (continuousAttackJudgmentCoroutine == null)
+                continuousAttackJudgmentCoroutine = StartCoroutine(ContinuousAttackJudgment());
 
-                // 조준하는 애니메이션 코루틴 수행
-                if (aimingCoroutine != null)
-                    StopCoroutine(aimingCoroutine);
-                aimingCoroutine = StartCoroutine(AimingEndCoroutine());
-            }
-            else
-            {
-                isAiming = !isAiming;
-
-                // 애니메이션 수정
-                if (aimingCoroutine != null)
-                    StopCoroutine(aimingCoroutine);
-                aimingCoroutine = StartCoroutine(AimingStartCoroutine());
-            }
+            // 공격
+            Attack();
         }
+
+        // 1 버튼 클릭(무기 변화)
+        if(Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            WeaponSlotManagerScript.ClickSlot(0);
+        }
+
+        // 2 버튼 클릭(무기 변화)
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            WeaponSlotManagerScript.ClickSlot(1);
+        }
+
+        // 3 버튼 클릭(무기 변화)
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            WeaponSlotManagerScript.ClickSlot(2);
+        }
+
+        // 4 버튼 클릭(무기 변화)
+        if (Input.GetKeyDown(KeyCode.Alpha4))
+        {
+            WeaponSlotManagerScript.ClickSlot(3);
+        }
+    }
+
+    private void StopMove()
+    {
+        verticalSpeed = 0;
+        isVerticalMove = false;
+        horizontalSpeed = 0;
+        isHorizontalMove = false;
+
+        conMaxSpeed = walkMaxSpeed;
     }
 
     private bool IsRunning()
     {
-        if (verticalSpeed > runSpeed - 0.5f)
+        if (moveMaginitude == runMaxSpeed)
             return true;
         else
             return false;
-    }
-
-    private IEnumerator AimingStartCoroutine()
-    {
-        float temp = 0;
-        while(temp < 1)
-        {
-            animator.SetLayerWeight(1, temp);
-
-            temp += Time.deltaTime * 3;
-            yield return null;
-        }
-        animator.SetLayerWeight(1, 1);
-    }
-
-    private IEnumerator AimingEndCoroutine()
-    {
-        float temp = 0;
-        while (temp < 1)
-        {
-            animator.SetLayerWeight(1, 1 - temp);
-
-            temp += Time.deltaTime * 3;
-            yield return null;
-        }
-        animator.SetLayerWeight(1, 0);
     }
 
     private IEnumerator IsGrounding()
@@ -584,29 +476,21 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 // 점프 후 착지한 경우
                 if(!isGroundAfterJump)
                 {
-                    // 점프 종료를 알림
-                    isJump = false;
                     isGroundAfterJump = true;
 
                     // 어느정도 빠른 속도이면 멈추지 않고 계속 달린다
                     if(IsRunning())
                     {
-                        runninghDustEffect.Emit(3);
-                        JumpEnd();
+                        dustParticle.Emit(3);
 
-                        // 착지 애니메이션 실행
-                        animator.SetTrigger("Move");
+                        JumpEnd();
                     }
                     // 그 외는 점프 후 멈춘다.
                     else
                     {
-                        runninghDustEffect.Emit(2);
-                        verticalSpeed = 0;
+                        dustParticle.Emit(2);
 
                         JumpEnd();
-
-                        // 착지 애니메이션 실행
-                        animator.SetTrigger("Move");
                     }
                 }
             }
@@ -620,41 +504,33 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
     }
 
-    private IEnumerator RunningGaugeSign()
+    IEnumerator AttackMovingCoroutine(float distance)
     {
-        const float beforeX = 255.0f / 255;
-        const float beforeY = 220.0f / 255;
-        const float beforeZ = 160.0f / 255;
-
-        const float afterX = 255.0f / 255;
-        const float afterY = 100.0f / 255;
-        const float afterZ = 100.0f / 255;
+        Vector3 initVector = transform.position;
+        Vector3 goalVector = transform.position + transform.forward * distance;
 
         float conTime = 0;
-        float maxTime = 1f;
-
-        // 경고로 붉은 이펙트
-        while (conTime < maxTime)
+        while (conTime < 1)
         {
-            conTime += Time.deltaTime * 3;
-
-            runImage.color = new Color(beforeX * (1 - conTime) + afterX * conTime, beforeY * (1 - conTime) + afterY * conTime, beforeZ * (1 - conTime) + afterZ * conTime);
+            transform.position = Vector3.Lerp(initVector, goalVector, conTime);
+            conTime += Time.deltaTime * 10;
             yield return null;
         }
-        conTime = 1;
-        runImage.color = new Color(afterX, afterY, afterZ);
+        transform.position = goalVector;
+    }
 
-        // 다시 원래대로
-        while (conTime > 0)
+    IEnumerator ContinuousAttackJudgment()
+    {
+        canContinuousAttack = true;
+        while (true)
         {
-            conTime -= Time.deltaTime * 3;
+            if(continuousAttackJudgmentConTime <= 0)
+                break;
 
-            runImage.color = new Color(beforeX * (1 - conTime) + afterX * conTime, beforeY * (1 - conTime) + afterY * conTime, beforeZ * (1 - conTime) + afterZ * conTime);
+            continuousAttackJudgmentConTime -= Time.deltaTime;
             yield return null;
         }
-        conTime = 0;
-        runImage.color = new Color(beforeX, beforeY, beforeZ);
-
-        runningSignCoroutine = null;
+        canContinuousAttack = false;
+        continuousAttackJudgmentCoroutine = null;
     }
 }
