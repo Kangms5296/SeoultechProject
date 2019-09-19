@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class WeaponSlotManagerScript : MonoBehaviour
 {
-    private static List<WeaponSlotSctipt> weaponSlots;
-    private static int conIndex = 0;
+    private List<WeaponSlotSctipt> weaponSlots;
+    private int conIndex = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -22,7 +22,7 @@ public class WeaponSlotManagerScript : MonoBehaviour
         
     }
 
-    public static void ClickSlot(int index)
+    public void ClickSlot(int index)
     {
         if(conIndex != index)
             weaponSlots[conIndex].DeactivateSlot();
@@ -31,4 +31,13 @@ public class WeaponSlotManagerScript : MonoBehaviour
         conIndex = index;
     }
 
+    public void SetWeapon(string weaponName, int conUsing, int maxUsing)
+    {
+        weaponSlots[conIndex].SetWeapon(weaponName, conUsing, maxUsing);
+    }
+
+    public void ResetWeapon()
+    {
+        weaponSlots[conIndex].ResetWeapon();
+    }
 }

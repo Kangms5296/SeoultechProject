@@ -97,7 +97,7 @@ public class MeleeWeaponTrail : MonoBehaviour
 
 	void OnDisable()
 	{
-		Destroy(_trailObject);
+		//Destroy(_trailObject);
 	}
 
 	void Update()
