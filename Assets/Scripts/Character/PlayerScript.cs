@@ -65,15 +65,16 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     void Start()
     {
-        CanChangeAction = new bool[6, 6]
+        CanChangeAction = new bool[7, 7]
         {
-            //  Move         Jump        Attack     Running     Pick Up     weapon Change
-            {   true,        true,       true ,     true,       true,       true }, // Move     <= 현재 이동을 하는 중 ~이 가능한가?
-            {   false,       false,      false,     false,      false,      true},  // Jump     <= 현재 점프를 하는 중 ~이 가능한가?
-            {   false,       false,      false,     false,      false,      false}, // Attack   <= 현재 공격을 하는 중 ~이 가능한가?
-            {   true,        false,      false,     true,       false,      true},  // Running  <= 이 배열은 쓰이지 않는다.
-            {   false,       false,      false,     false,      false,      false}, // Pick Up
-            {   true,        true,       false,     true,       false,      false },// Weapon Change
+            //  Move         Jump        Attack     Running     Pick Up     weapon Change       Roll
+            {   true,        true,       true ,     true,       true,       true,               true }, // Move     <= 현재 이동을 하는 중 ~이 가능한가?
+            {   false,       false,      false,     false,      false,      true,               false}, // Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   false,       false,      false,     false,      false,      false,              true},  // Attack   <= 현재 공격을 하는 중 ~이 가능한가?
+            {   true,        false,      false,     true,       false,      true,               true},  // Running  <= 이 배열은 쓰이지 않는다.
+            {   false,       false,      false,     false,      false,      false,              true},  // Pick Up
+            {   true,        true,       false,     true,       false,      false,              true},  // Weapon Change
+            {   false,      false,       false,     false,      false,      false,              false}, // Roll
         };
 
         controller = GetComponent<CharacterController>();
@@ -171,6 +172,24 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
         return true;
+    }
+
+    public void RollLeft()
+    {
+        // 현재 상태에서 공격할 수 있으면..
+        if (!CanChangeAction[conAction, 6])
+            return;
+
+        RollStart(true, transform.right * -1);
+    }
+
+    public void RollRight()
+    {
+        // 현재 상태에서 공격할 수 있으면..
+        if (!CanChangeAction[conAction, 6])
+            return;
+
+        RollStart(false, transform.right);
     }
 
     // ===================================================== private function ============================================================
@@ -574,6 +593,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 'Click F' Text를 화면에서 지운다.
         WorldSpaceCanvasUIs.SetActive("Click F", false);
+        Debug.Log("할렐루야!");
     }
 
     private void PickUpEnd()
@@ -626,8 +646,30 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         conAction = 5;
     }
 
-    private void SwapWeapon()
+    private void RollStart(bool isLeft, Vector3 moveDirection)
     {
+        // 이동을 멈춘다.
+        StopMove();
 
+        dustParticle.Emit(2);
+
+        animator.SetTrigger("Roll");
+        conAction = 6;
+
+        // 구르기 모션 실행
+        if (isLeft)
+            transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y - 90, 0);
+        else
+            transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
+
+        StartCoroutine(AttackMovingCoroutine(1));
     }
+
+    private void RollEnd()
+    {
+        // 이동
+        animator.SetTrigger("Move");
+        conAction = 0;
+    }
+
 }

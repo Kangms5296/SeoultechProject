@@ -42,7 +42,9 @@ public class InputManager : MonoBehaviour
             {
                 // 플레이어의 무기를 바닥의 무기와 교체
                 bool isOk = player.PickUp();
-                Debug.Log(weaponSlotManager);
+
+                Debug.Log("dldl이이이잉");
+
                 // weapon Slot 정보를 수정
                 if (isOk)
                     weaponSlotManager.SetWeapon(DropObjectScript.dropObject.weaponName, DropObjectScript.dropObject.conUsing, DropObjectScript.dropObject.maxUsing);
@@ -84,6 +86,18 @@ public class InputManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha4))
         {
             weaponSlotManager.ClickSlot(3);
+        }
+
+        // Q 버튼 클릭(좌로 굴러)
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            player.RollLeft();
+        }
+
+        // E 버튼 클릭(우로 굴러)
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            player.RollRight();
         }
     }
 }
