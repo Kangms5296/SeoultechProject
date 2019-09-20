@@ -132,7 +132,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 현재 상태에서 공격할 수 있으면..
         if (!CanChangeAction[conAction, 2])
             return;
-
+        
         // 공격
         AttackStart();
     }
@@ -205,7 +205,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // 앞뒤 이동계산
             if (Input.GetKey(KeyCode.W))
             {
-                verticalSpeed += moveAcceleration;
+                verticalSpeed += moveAcceleration * Time.deltaTime * 20;
                 if (verticalSpeed > conMaxSpeed)
                     verticalSpeed = conMaxSpeed;
 
@@ -214,7 +214,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             }
             else if (Input.GetKey(KeyCode.S))
             {
-                verticalSpeed -= moveAcceleration;
+                verticalSpeed -= moveAcceleration * Time.deltaTime * 20;
                 if (verticalSpeed < conMaxSpeed * -1)
                     verticalSpeed = conMaxSpeed * -1;
 
@@ -225,13 +225,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 if (isFront)
                 {
-                    verticalSpeed -= moveDeceleration;
+                    verticalSpeed -= moveDeceleration * Time.deltaTime * 20;
                     if (verticalSpeed < 0)
                         verticalSpeed = 0;
                 }
                 else
                 {
-                    verticalSpeed += moveDeceleration;
+                    verticalSpeed += moveDeceleration * Time.deltaTime * 20;
                     if (verticalSpeed > 0)
                         verticalSpeed = 0;
                 }
@@ -241,7 +241,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // 좌우 이동계산
             if (Input.GetKey(KeyCode.A))
             {
-                horizontalSpeed += moveAcceleration;
+                horizontalSpeed += moveAcceleration * Time.deltaTime * 20;
                 if (horizontalSpeed > conMaxSpeed)
                     horizontalSpeed = conMaxSpeed;
 
@@ -250,7 +250,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             }
             else if (Input.GetKey(KeyCode.D))
             {
-                horizontalSpeed -= moveAcceleration;
+                horizontalSpeed -= moveAcceleration * Time.deltaTime * 20;
                 if (horizontalSpeed < conMaxSpeed * -1)
                     horizontalSpeed = conMaxSpeed * -1;
 
@@ -261,13 +261,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 if (isLeft)
                 {
-                    horizontalSpeed -= moveDeceleration;
+                    horizontalSpeed -= moveDeceleration * Time.deltaTime * 20;
                     if (horizontalSpeed < 0)
                         horizontalSpeed = 0;
                 }
                 else
                 {
-                    horizontalSpeed += moveDeceleration;
+                    horizontalSpeed += moveDeceleration * Time.deltaTime * 20;
                     if (horizontalSpeed > 0)
                         horizontalSpeed = 0;
                 }
@@ -307,8 +307,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
 
         // 이동
-        Vector3 moveResult = (moveVector.normalized * moveMaginitude + Vector3.up * resultGravity) * Time.smoothDeltaTime;
-        controller.Move(moveResult);
+        Vector3 moveResult = (moveVector.normalized * moveMaginitude + Vector3.up * resultGravity);
+        Debug.Log(moveResult.x);
+        controller.Move(moveResult * Time.deltaTime);
     }
 
     private void AttackStart()
