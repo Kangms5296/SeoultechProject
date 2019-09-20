@@ -63,6 +63,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public float gravity;                       // 중력 가속도
     private float resultGravity = 0;            // 현재 작용되는 중력
 
+    private bool isLeftRolling = false;         // 구르기 기술에 사용.
+
     void Start()
     {
         CanChangeAction = new bool[7, 7]
@@ -180,7 +182,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (!CanChangeAction[conAction, 6])
             return;
 
-        RollStart(true, transform.right * -1);
+        isLeftRolling = true;
+        RollStart(transform.right * -1);
     }
 
     public void RollRight()
@@ -189,7 +192,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (!CanChangeAction[conAction, 6])
             return;
 
-        RollStart(false, transform.right);
+        isLeftRolling = false;
+        RollStart(transform.right);
     }
 
     // ===================================================== private function ============================================================
@@ -537,6 +541,21 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         transform.position = goalVector;
     }
 
+    IEnumerator RollingCoroutine(bool isLeft, float distance)
+    {
+        Vector3 initVector = transform.position;
+        Vector3 goalVector = transform.position + transform.forward * distance;
+
+        float conTime = 0;
+        while (conTime < 1)
+        {
+            transform.position = Vector3.Lerp(initVector, goalVector, conTime);
+            conTime += Time.deltaTime * 10;
+            yield return null;
+        }
+        transform.position = goalVector;
+    }
+
     IEnumerator ContinuousAttackJudgment()
     {
         canContinuousAttack = true;
@@ -646,29 +665,38 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         conAction = 5;
     }
 
-    private void RollStart(bool isLeft, Vector3 moveDirection)
+    private void RollStart(Vector3 moveDirection)
     {
         // 이동을 멈춘다.
         StopMove();
 
+        // 구르기 시작 위치에 먼지 파티클 생성
         dustParticle.Emit(2);
 
+        // 구르는 애니메이션 실행
         animator.SetTrigger("Roll");
         conAction = 6;
 
-        // 구르기 모션 실행
-        if (isLeft)
+        // 구르는 방향으로 회전
+        if (isLeftRolling)
             transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y - 90, 0);
         else
             transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
 
-        StartCoroutine(AttackMovingCoroutine(1));
+        // 구르기 모션 실행
+        StartCoroutine(AttackMovingCoroutine(1.5f));
     }
 
     private void RollEnd()
     {
-        // 이동
-        animator.SetTrigger("Move");
+        // 원래 방향으로 회전
+        if (isLeftRolling) { }
+        //transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
+        else { }
+            //transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y - 90, 0);
+
+            // 이동
+            animator.SetTrigger("Move");
         conAction = 0;
     }
 
