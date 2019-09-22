@@ -16,9 +16,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     [Header("Outside Object Caching")]
     public ParticleSystem dustParticle;     // 점프 후 착지에 사용할 먼지 Particle
     public MeleeWeaponTrail weaponTrail;    // 무기를 휘두를 때 나타나는 잔상 효과
-    public Transform weaponParent;          // 플레이어가 들고있는 무기의 부모
-    public Transform weaponReturn;          // 필드에 드랍되는 무기들의 부모
-    public Transform notUsingWeaponParent;  // 플레이어가 등에 매고있는 무기들의 부모
+    public Transform handlingWeaponParent;          // 플레이어가 들고있는 무기의 부모
+    public Transform droppedWeaponReturn;          // 필드에 드랍되는 무기들의 부모
+    public Transform backWeaponParent;  // 플레이어가 등에 매고있는 무기들의 부모
+    public PlayerSkillScript skillManager;  // 플레이어 스킬 관련 스크립트
+
 
     // 상태 변화 가능유무 2차배열
     private bool[,] CanChangeAction;
@@ -63,8 +65,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public float gravity;                       // 중력 가속도
     private float resultGravity = 0;            // 현재 작용되는 중력
 
-    private bool isLeftRolling = false;         // 구르기 기술에 사용.
-
     void Start()
     {
         CanChangeAction = new bool[7, 7]
@@ -74,7 +74,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {   false,       false,      false,     false,      false,      true,               false}, // Jump     <= 현재 점프를 하는 중 ~이 가능한가?
             {   false,       false,      false,     false,      false,      false,              true},  // Attack   <= 현재 공격을 하는 중 ~이 가능한가?
             {   true,        false,      false,     true,       false,      true,               true},  // Running  <= 이 배열은 쓰이지 않는다.
-            {   false,       false,      false,     false,      false,      false,              true},  // Pick Up
+            {   false,       false,      false,     false,      false,      false,              false},  // Pick Up
             {   true,        true,       false,     true,       false,      false,              true},  // Weapon Change
             {   false,      false,       false,     false,      false,      false,              false}, // Roll
         };
@@ -178,22 +178,22 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void RollLeft()
     {
-        // 현재 상태에서 공격할 수 있으면..
+        // 현재 상태에서 구르기를 할 수 있으면..
         if (!CanChangeAction[conAction, 6])
             return;
 
-        isLeftRolling = true;
-        RollStart(transform.right * -1);
+        if (skillManager.Rolling())
+            RollStart(true, transform.right * -1);
     }
 
     public void RollRight()
     {
-        // 현재 상태에서 공격할 수 있으면..
+        // 현재 상태에서 구르기를 할 수 있으면..
         if (!CanChangeAction[conAction, 6])
             return;
 
-        isLeftRolling = false;
-        RollStart(transform.right);
+        if (skillManager.Rolling())
+            RollStart(false, transform.right);
     }
 
     // ===================================================== private function ============================================================
@@ -592,8 +592,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (weaponType != Weapontype.None)
         {
             // 무기를 바닥에 놓는다.
-            weapon = weaponParent.GetChild(0);
-            weapon.SetParent(weaponReturn);
+            weapon = handlingWeaponParent.GetChild(0);
+            weapon.SetParent(droppedWeaponReturn);
             weapon.position = transform.position + transform.forward * 0.5f;
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
             weapon.GetComponent<WeaponScript>().ChangeToDrop();
@@ -606,14 +606,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             weaponTrail = weapon.Find("Equiped").GetComponent<MeleeWeaponTrail>();
 
         // 바닥에 있던 무기를 손으로 이동시킨다.
-        weapon.SetParent(weaponParent);
+        weapon.SetParent(handlingWeaponParent);
         weapon.localPosition = Vector3.zero;
         weapon.localRotation = Quaternion.Euler(0, 0, 0);
         DropObjectScript.dropObject.ChangeToEquiped();
 
         // 'Click F' Text를 화면에서 지운다.
         WorldSpaceCanvasUIs.SetActive("Click F", false);
-        Debug.Log("할렐루야!");
     }
 
     private void PickUpEnd()
@@ -641,8 +640,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (weaponType != Weapontype.None)
         {
             // 무기를 바닥에 놓는다.
-            weapon = weaponParent.GetChild(0);
-            weapon.SetParent(weaponReturn);
+            weapon = handlingWeaponParent.GetChild(0);
+            weapon.SetParent(droppedWeaponReturn);
             weapon.position = transform.position + transform.forward * 0.5f;
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
             weapon.GetComponent<WeaponScript>().ChangeToDrop();
@@ -666,7 +665,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         conAction = 5;
     }
 
-    private void RollStart(Vector3 moveDirection)
+    private void RollStart(bool isLeft, Vector3 moveDirection)
     {
         // 이동을 멈춘다.
         StopMove();
@@ -679,7 +678,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         conAction = 6;
 
         // 구르는 방향으로 회전
-        if (isLeftRolling)
+        if (isLeft)
             transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y - 90, 0);
         else
             transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
@@ -690,14 +689,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     private void RollEnd()
     {
-        // 원래 방향으로 회전
-        if (isLeftRolling) { }
-        //transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
-        else { }
-            //transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y - 90, 0);
-
-            // 이동
-            animator.SetTrigger("Move");
+        // 이동
+        animator.SetTrigger("Move");
         conAction = 0;
     }
 

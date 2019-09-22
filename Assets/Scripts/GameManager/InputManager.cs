@@ -43,12 +43,9 @@ public class InputManager : MonoBehaviour
                 // 플레이어의 무기를 바닥의 무기와 교체
                 bool isOk = player.PickUp();
 
-                Debug.Log("dldl이이이잉");
-
                 // weapon Slot 정보를 수정
                 if (isOk)
                     weaponSlotManager.SetWeapon(DropObjectScript.dropObject.weaponName, DropObjectScript.dropObject.conUsing, DropObjectScript.dropObject.maxUsing);
-
             }
 
         }
