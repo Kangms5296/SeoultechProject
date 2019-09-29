@@ -6,7 +6,7 @@ public class DropObjectScript : MonoBehaviour
 {
     // 플레이어 주변에 무기가 있는가?
     public static bool isThereWeaponAroundPlayer = false;
-    // 플레이어 주변에 있는 무기 
+    // 플레이어 주변에 있는 무기 정보
     public static WeaponScript dropObject;
 
 
@@ -29,7 +29,7 @@ public class DropObjectScript : MonoBehaviour
             // 'Click F' 가 표시된 Text를 화면에 표시
             WorldSpaceCanvasUIs.SetActive("Click F", true);
 
-            // 현재 주위에 있는 오브젝트의 정보를 저장
+            // 현재 주위에 있는 오브젝트의 정보를 임시 저장
             dropObject = parentWeaponScript;
             isThereWeaponAroundPlayer = true;
         }
@@ -42,6 +42,7 @@ public class DropObjectScript : MonoBehaviour
             WorldSpaceCanvasUIs.SetActive("Click F", false);
             
             isThereWeaponAroundPlayer = false;
+            dropObject = null;
         }
     }
 }

@@ -34,20 +34,22 @@ public class InputManager : MonoBehaviour
             player.Attack();
         }
 
-        // F 버튼 클릭(무기 줍기)
-        if(Input.GetKeyDown(KeyCode.F))
+        // 마우스 오른쪽 키 누르면(조건부 기술)
+        if (Input.GetMouseButtonDown(1))
         {
-            // 플레이어 주변에 획득 가능한 무기가 있으면
-            if(DropObjectScript.isThereWeaponAroundPlayer)
-            {
-                // 플레이어의 무기를 바닥의 무기와 교체
-                bool isOk = player.PickUp();
+            // 집중모드
+            player.FocusMode();
+        }
 
-                // weapon Slot 정보를 수정
-                if (isOk)
-                    weaponSlotManager.SetWeapon(DropObjectScript.dropObject.weaponName, DropObjectScript.dropObject.conUsing, DropObjectScript.dropObject.maxUsing);
-            }
+        // F 버튼 클릭(무기 줍기)
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            // 플레이어의 무기를 바닥의 무기와 교체
+            bool isOk = player.PickUp();
 
+            // weapon Slot 정보를 수정
+            if (isOk)
+                weaponSlotManager.SetWeapon(DropObjectScript.dropObject.weaponName, DropObjectScript.dropObject.conUsing, DropObjectScript.dropObject.maxUsing);
         }
 
         // X 버튼 클릭(무기 버리기)

@@ -5,8 +5,6 @@ using UnityEngine.UI;
 using System;
 using Cinemachine;
 
-public enum Weapontype { None, Swing, Shooting, Throwing};
-
 public class PlayerScript : MonoBehaviour, CharacterScript
 {
     // 플레이어 컴포넌트
@@ -14,12 +12,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private Animator animator;
 
     [Header("Outside Object Caching")]
-    public ParticleSystem dustParticle;     // 점프 후 착지에 사용할 먼지 Particle
-    public MeleeWeaponTrail weaponTrail;    // 무기를 휘두를 때 나타나는 잔상 효과
-    public Transform handlingWeaponParent;          // 플레이어가 들고있는 무기의 부모
-    public Transform droppedWeaponReturn;          // 필드에 드랍되는 무기들의 부모
-    public Transform backWeaponParent;  // 플레이어가 등에 매고있는 무기들의 부모
-    public PlayerSkillScript skillManager;  // 플레이어 스킬 관련 스크립트
+    public ParticleSystem dustParticle;                         // 점프 후 착지에 사용할 먼지 Particle
+
+    public Transform handlingWeaponParent;                      // 플레이어가 들고있는 무기의 부모 객체
+    public Transform backWeaponParent;                          // 플레이어가 등에 매고있는 무기의 부모
+    public Transform droppedWeaponParent;                       // 필드에 드랍되는 무기들의 부모
+
+    public PlayerSkillScript skillManager;                      // 플레이어 스킬 관련 스크립트
 
 
     // 상태 변화 가능유무 2차배열
@@ -29,54 +28,58 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private int weaponChangeIndex;
 
     [Header("Character Info")]
-    public float conMaxSpeed;                   // 현재 최대 속도
-    public float walkMaxSpeed;                  // 최대 걷는 속도
-    public float runMaxSpeed;                   // 최대 뛰는 속도
-    private bool isMoving = false;              // 현재 이동중인가
-    private bool canRotate = true;              // 이동간 회전이 가능한가
+    public float conMaxSpeed;                                   // 현재 최대 속도
+    public float walkMaxSpeed;                                  // 최대 걷는 속도
+    public float runMaxSpeed;                                   // 최대 뛰는 속도
+    private bool isMoving = false;                              // 현재 이동중인가
+    private bool canRotate = true;                              // 이동간 회전이 가능한가
 
-    public float moveAcceleration;              // 가속 정도
-    public float moveDeceleration;              // 감속 정도
+    public float moveAcceleration;                              // 가속 정도
+    public float moveDeceleration;                              // 감속 정도
     
-    public float jumpForce;                     // 점프력
-    private bool isGroundAfterJump = true;      // 점프 후 착지 확인
+    public float jumpForce;                                     // 점프력
+    private bool isGroundAfterJump = true;                      // 점프 후 착지 확인
     
-    private bool isVerticalMove = false;        // 좌우 이동 여부 확인
-    private bool isLeft = false;                // 좌우 중 어느 이동인지 확인
-    private float verticalSpeed = 0;            // 좌우 이동 힘 확인
+    private bool isVerticalMove = false;                        // 좌우 이동 여부 확인
+    private bool isLeft = false;                                // 좌우 중 어느 이동인지 확인
+    private float verticalSpeed = 0;                            // 좌우 이동 힘 확인
 
-    private bool isHorizontalMove = false;      // 상하 이동 여부 확인
-    private bool isFront = false;               // 상하 중 어느 이동인지 확인
-    private float horizontalSpeed = 0;          // 상하 이동 힘 확인
+    private bool isHorizontalMove = false;                      // 상하 이동 여부 확인
+    private bool isFront = false;                               // 상하 중 어느 이동인지 확인
+    private float horizontalSpeed = 0;                          // 상하 이동 힘 확인
     
-    private float continuousAttackJudgmentConTime;          // 연속 공격 판정
-    public float continuousAttackJudgmentMaxTime;           // 연속 공격 판정 최대 시간
-    private bool canContinuousAttack = false;               // 연속 공격 판정 내 공격 버튼을 눌렀는가?
-    private Coroutine continuousAttackJudgmentCoroutine;    // 연속 공격 판정 코루틴
-    
-    private Weapontype weaponType = Weapontype.None;        // 현재 사용하는 무기의 종류
-    private bool isUsingWeaponTrail = false;                // 현재 사용하는 무기가 WeaponTrail을 사용하는가?
+    private float continuousAttackJudgmentConTime;              // 연속 공격 판정
+    public float continuousAttackJudgmentMaxTime;               // 연속 공격 판정 최대 시간
+    private bool canContinuousAttack = false;                   // 연속 공격 판정 내 공격 버튼을 눌렀는가?
+    private bool isFinishAttackDelay = false;                   // 연속 공격 마지막 이후 딜레이인가?
 
-    public float moveMaginitude = 0;            // 이동 힘
-    private Vector3 beforeMove  = Vector3.zero; // 이전 프레임에서의 이동 벡터
-    private Vector3 newMove     = Vector3.zero; // 현재 프레임에서의 이동 벡터
-    private Vector3 moveVector  = Vector3.zero; // 이전과 현재 프레임에서의 이동 벡터를 보간하여 얻은 최종 이동 벡터
-    
-    public float gravity;                       // 중력 가속도
-    private float resultGravity = 0;            // 현재 작용되는 중력
+    public float moveMaginitude = 0;                            // 이동 힘
+    private Vector3 beforeMove  = Vector3.zero;                 // 이전 프레임에서의 이동 벡터
+    private Vector3 newMove     = Vector3.zero;                 // 현재 프레임에서의 이동 벡터
+    private Vector3 moveVector  = Vector3.zero;                 // 이전과 현재 프레임에서의 이동 벡터를 보간하여 얻은 최종 이동 벡터
+
+    private Weapontype weaponType = Weapontype.None;            // 현재 사용하는 무기의 종류
+    private WeaponScript conWeapon;                             // 현재 손에 쥐고있는 무기 정보.
+
+    private bool isFocusMode = false;                           // 현재 집중모드를 사용중인가?
+
+    public float gravity;                                       // 중력 가속도
+    private float resultGravity = 0;                            // 현재 작용되는 중력
 
     void Start()
     {
-        CanChangeAction = new bool[7, 7]
+        CanChangeAction = new bool[9, 9]
         {
-            //  Move         Jump        Attack     Running     Pick Up     weapon Change       Roll
-            {   true,        true,       true ,     true,       true,       true,               true }, // Move     <= 현재 이동을 하는 중 ~이 가능한가?
-            {   false,       false,      false,     false,      false,      true,               false}, // Jump     <= 현재 점프를 하는 중 ~이 가능한가?
-            {   false,       false,      false,     false,      false,      false,              true},  // Attack   <= 현재 공격을 하는 중 ~이 가능한가?
-            {   true,        false,      false,     true,       false,      true,               true},  // Running  <= 이 배열은 쓰이지 않는다.
-            {   false,       false,      false,     false,      false,      false,              false},  // Pick Up
-            {   true,        true,       false,     true,       false,      false,              true},  // Weapon Change
-            {   false,      false,       false,     false,      false,      false,              false}, // Roll
+            //  Move         Jump         Attack     Running     Pick Up     weapon Change       Roll        Focus Mode  Focue Mode Attack
+            {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,}, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      true ,              false,      false,      false,}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      false,              true ,      false,      false,}, // 2    Attack   <= 현재 공격을 하는 중 ~이 가능한가?
+            {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,}, // 3    Running  <= 이 배열은 쓰이지 않는다.
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 4    Pick Up
+            {   true ,       true ,       false,     true ,      false,      false,              true ,      false,      false,}, // 5    Weapon Change
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 6    Roll
+            {   false,       false,       true ,     false,      false,      false,              false,      true ,      true ,}, // 7    Focue Mode
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 8    Focue Mode Attack
         };
 
         controller = GetComponent<CharacterController>();
@@ -124,10 +127,13 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public void Attack()
     {
+        if (isFinishAttackDelay)
+            return;
+
         // 연속공격 판정시간 초기화
         continuousAttackJudgmentConTime = continuousAttackJudgmentMaxTime;
-        if (continuousAttackJudgmentCoroutine == null)
-            continuousAttackJudgmentCoroutine = StartCoroutine(ContinuousAttackJudgment());
+        if (canContinuousAttack == false)
+            StartCoroutine(ContinuousAttackJudgment());
 
         // 현재 상태에서 공격할 수 있으면..
         if (!CanChangeAction[conAction, 2])
@@ -137,14 +143,61 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         AttackStart();
     }
 
+    // 마우스 우클릭으로 사용하는 집중모드, 각 무기 종류 간 다른 기술 사용
+    public void FocusMode()
+    {
+        // 집중모드로 변경할 수 있는가?
+        if (!CanChangeAction[conAction, 7])
+            return;
+
+        if (isFocusMode)
+        {
+            isFocusMode = false;
+
+            // 딜레이 코루틴 시작
+            skillManager.Focus();
+            
+            animator.SetTrigger("Move");
+            conAction = 0;
+        }
+        else
+        {
+            // 딜레이 중인가
+            if (!skillManager.CanFicus())
+                return;
+
+            switch (weaponType)
+            {
+                case Weapontype.Swing:
+
+                    break;
+
+                case Weapontype.Shooting:
+
+                    isFocusMode = true;
+
+                    // 이동을 멈춘다.
+                    StopMove();
+
+                    // 조준
+                    Aim();
+                    break;
+            }
+        }
+    }
+
+
     public bool PickUp()
     {
-        // 현재 아이템을 주울 수 있으면..
+        // 현재 무기를 주울 수 있으면..
         if (!CanChangeAction[conAction, 4])
             return false;
 
-        PickUpStart();
+        // 플레이어 주변에 획득 가능한 무기가 있으면
+        if (!DropObjectScript.isThereWeaponAroundPlayer)
+            return false;
 
+        PickUpStart();
         return true;
     }
 
@@ -182,6 +235,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (!CanChangeAction[conAction, 6])
             return;
 
+        // 구르기 쿨타임 확인
         if (skillManager.Rolling())
             RollStart(true, transform.right * -1);
     }
@@ -192,6 +246,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         if (!CanChangeAction[conAction, 6])
             return;
 
+        // 구르기 쿨타임 확인
         if (skillManager.Rolling())
             RollStart(false, transform.right);
     }
@@ -308,24 +363,23 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 이동
         Vector3 moveResult = (moveVector.normalized * moveMaginitude + Vector3.up * resultGravity);
-        Debug.Log(moveResult.x);
         controller.Move(moveResult * Time.deltaTime);
     }
 
     private void AttackStart()
     {
-        // 기존의 이동을 멈춘다.
-        StopMove();
-
         // 무기 타입에 따라..
         switch (weaponType)
         {
             // 무기가 없다.(주먹질)
             case Weapontype.None:
+                // 기존의 이동을 멈춘다.
+                StopMove();
+
                 animator.SetTrigger("Punch");
                 conAction = 2;
 
-                // 그 외엔 조금 이동
+                // 조금 이동
                 StartCoroutine(AttackMovingCoroutine(0.3f));
 
                 break;
@@ -333,33 +387,59 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
             // 몽둥이, 검 등의 무기
             case Weapontype.Swing:
-                // 무기 잔상 효과 On
-                WeaponTrailOn();
+                // 기존의 이동을 멈춘다.
+                StopMove();
+
+                // 공격 준비
+                conWeapon.PreAttack();
 
                 // 공격 시 전방 이동
                 if (IsRunning())
                 {
-                    animator.SetTrigger("Swing");
-                    conAction = 2;
-
                     // 최고 속도로 달리는 상황이면 앞으로 돌진
                     StartCoroutine(AttackMovingCoroutine(4f));
+
+                    animator.SetTrigger("Swing");
+                    conAction = 2;
                 }
                 else
                 {
-                    animator.SetTrigger("Swing");
-                    conAction = 2;
-
                     // 그 외엔 조금 이동
                     StartCoroutine(AttackMovingCoroutine(0.5f));
+
+                    animator.SetTrigger("Swing");
+                    conAction = 2;
                 }
+                break;
+
+            // 총 등의 무기
+            case Weapontype.Shooting:
+                // 기존의 이동을 멈춘다.
+                StopMove();
+
+                // 공격 준비
+                conWeapon.PreAttack();
+
+                // 조준 중 공격
+                if (conAction == 7)
+                {
+                    animator.SetTrigger("Shooting");
+                    conAction = 8;
+                }
+                // 일반 공격
+                else
+                {
+                    animator.SetTrigger("Shooting");
+                    conAction = 2;
+                }
+
                 break;
         }
     }
 
     private void AttackEnd()
     {
-        if(canContinuousAttack)
+        if(canContinuousAttack && !isFinishAttackDelay)
         {
             // 무기 타입에 따라..
             switch (weaponType)
@@ -386,11 +466,60 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
         else
         {
+            // 공격 마무리
+            if (conWeapon != null)
+                conWeapon.PostAttack();
+
             animator.SetTrigger("Move");
             conAction = 0;
+        }
+    }
 
-            if(isUsingWeaponTrail)
-                WeaponTrailOff();
+    // 연속 공격의 마지막 공격 이후에는 약간의 딜레이
+    private void AttackFinishEnd()
+    {
+        StartCoroutine(AttackFinishCoroutine());
+    }
+
+
+    IEnumerator AttackFinishCoroutine()
+    {
+        isFinishAttackDelay = true;
+
+        float conTime = 0;
+        float maxTime = 0.2f;
+        while(conTime < maxTime)
+        {
+            conTime += Time.deltaTime;
+
+            yield return null;
+        }
+
+        isFinishAttackDelay = false;
+    }
+
+    private void InstanceProjectile()
+    {
+        float recoil = UnityEngine.Random.Range(0, conWeapon.recoil);
+
+        // 투사체를 생성하여 전방으로 공격
+        conWeapon.Attack(transform.forward + transform.right * recoil + transform.right * -1 * (conWeapon.recoil - recoil));
+    }
+
+    private void ShootingEnd()
+    {
+        // 조준 중 공격은..
+        if (conAction == 8)
+        {
+            // 이후에도 계속 조준
+            animator.SetTrigger("Aim");
+            conAction = 7;
+        }
+        // 일반 공격
+        else
+        {
+            animator.SetTrigger("Move");
+            conAction = 0;
         }
     }
     
@@ -454,18 +583,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 이동 애니메이션 실행
         animator.SetTrigger("Move");
         conAction = 0;
-    }
-
-    private void WeaponTrailOn()
-    {
-        isUsingWeaponTrail = true;
-        weaponTrail.Emit = true;
-    }
-
-    private void WeaponTrailOff()
-    {
-        isUsingWeaponTrail = false;
-        weaponTrail.Emit = false;
     }
     
     private void StopMove()
@@ -569,7 +686,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             yield return null;
         }
         canContinuousAttack = false;
-        continuousAttackJudgmentCoroutine = null;
     }
 
     private void PickUpStart()
@@ -591,25 +707,26 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // 현재 무기를 가지고 있다면
         if (weaponType != Weapontype.None)
         {
-            // 무기를 바닥에 놓는다.
-            weapon = handlingWeaponParent.GetChild(0);
-            weapon.SetParent(droppedWeaponReturn);
+            // 사용하던 무기를 바닥에 놓는다.
+            weapon = conWeapon.GetComponent<Transform>();
+            weapon.SetParent(droppedWeaponParent);
             weapon.position = transform.position + transform.forward * 0.5f;
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
-            weapon.GetComponent<WeaponScript>().ChangeToDrop();
+
+            // 사용하던 Drop 상태로 변경
+            conWeapon.ChangeToDrop();
         }
 
-        // 무기 교체를 알려서, 공격 시 모션을 변화하게 한다.
-        weapon = DropObjectScript.dropObject.transform;
-        weaponType = DropObjectScript.dropObject.weaponType;
-        if (weaponType == Weapontype.Swing)
-            weaponTrail = weapon.Find("Equiped").GetComponent<MeleeWeaponTrail>();
+        // 새로운 무기로 정보를 교체
+        conWeapon = DropObjectScript.dropObject;
+        conWeapon.ChangeToEquiped();
 
-        // 바닥에 있던 무기를 손으로 이동시킨다.
-        weapon.SetParent(handlingWeaponParent);
+        // 새로운 무기를 손으로 이동
+        weapon = conWeapon.transform;
+        weapon.SetParent(handlingWeaponParent, true);
         weapon.localPosition = Vector3.zero;
         weapon.localRotation = Quaternion.Euler(0, 0, 0);
-        DropObjectScript.dropObject.ChangeToEquiped();
+        weaponType = conWeapon.weaponType;
 
         // 'Click F' Text를 화면에서 지운다.
         WorldSpaceCanvasUIs.SetActive("Click F", false);
@@ -641,7 +758,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             // 무기를 바닥에 놓는다.
             weapon = handlingWeaponParent.GetChild(0);
-            weapon.SetParent(droppedWeaponReturn);
+            weapon.SetParent(droppedWeaponParent);
             weapon.position = transform.position + transform.forward * 0.5f;
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
             weapon.GetComponent<WeaponScript>().ChangeToDrop();
@@ -694,4 +811,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         conAction = 0;
     }
 
+    private void Aim()
+    {
+        animator.SetTrigger("Aim");
+        conAction = 7;
+    }
 }

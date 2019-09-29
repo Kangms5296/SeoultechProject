@@ -10,7 +10,10 @@ public class PlayerSkillScript : MonoBehaviour
     private bool canRolling = true;
     public Image rollingDelayImage;
 
-
+    [Header("Focus")]
+    public float focusDealy;
+    private bool canFocus = true;
+    public Image focusDelayImage;
 
     public bool Rolling()
     {
@@ -21,6 +24,23 @@ public class PlayerSkillScript : MonoBehaviour
         }
         return false;
     }
+
+    public bool Focus()
+    {
+        if (canFocus)
+        {
+            StartCoroutine(FocusCoroutine());
+            return true;
+        }
+        return false;
+    }
+
+    public bool CanFicus()
+    {
+        return canFocus;
+    }
+
+
 
     IEnumerator RollingCoroutine()
     {
@@ -37,5 +57,22 @@ public class PlayerSkillScript : MonoBehaviour
         rollingDelayImage.fillAmount = 0;
 
         canRolling = true;
+    }
+
+    IEnumerator FocusCoroutine()
+    {
+        canFocus = false;
+
+        float conTime = 0;
+        do
+        {
+            focusDelayImage.fillAmount = 1 - (conTime / focusDealy);
+
+            conTime += Time.deltaTime;
+            yield return null;
+        } while (conTime < focusDealy);
+        focusDelayImage.fillAmount = 0;
+
+        canFocus = true;
     }
 }
