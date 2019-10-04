@@ -49,7 +49,7 @@ public class InputManager : MonoBehaviour
 
             // weapon Slot 정보를 수정
             if (isOk)
-                weaponSlotManager.SetWeapon(DropObjectScript.dropObject.weaponName, DropObjectScript.dropObject.conUsing, DropObjectScript.dropObject.maxUsing);
+                weaponSlotManager.SetWeapon(DropObjectScript.dropObject);
         }
 
         // X 버튼 클릭(무기 버리기)
@@ -66,25 +66,61 @@ public class InputManager : MonoBehaviour
         // 1 버튼 클릭(무기 변화)
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            weaponSlotManager.ClickSlot(0);
+            // 플레이어의 무기를 교체한다.
+            bool isOk = player.WeaponChange(0);
+
+            if (isOk)
+            {
+                // 클릭한 slot을 활성화
+                weaponSlotManager.ClickSlot(0);
+
+
+            }
         }
 
         // 2 버튼 클릭(무기 변화)
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            weaponSlotManager.ClickSlot(1);
+            // 플레이어의 무기를 교체한다
+            bool isOk = player.WeaponChange(1);
+
+            if (isOk)
+            {
+                // 클릭한 slot을 활성화
+                weaponSlotManager.ClickSlot(1);
+
+
+            }
         }
 
         // 3 버튼 클릭(무기 변화)
         if (Input.GetKeyDown(KeyCode.Alpha3))
         {
-            weaponSlotManager.ClickSlot(2);
+            // 플레이어의 무기를 교체한다
+            bool isOk = player.WeaponChange(2);
+
+            if (isOk)
+            {
+                // 클릭한 slot을 활성화
+                weaponSlotManager.ClickSlot(2);
+
+
+            }
         }
 
         // 4 버튼 클릭(무기 변화)
         if (Input.GetKeyDown(KeyCode.Alpha4))
         {
-            weaponSlotManager.ClickSlot(3);
+            // 플레이어의 무기를 교체한다
+            bool isOk = player.WeaponChange(3);
+
+            if (isOk)
+            {
+                // 클릭한 slot을 활성화
+                weaponSlotManager.ClickSlot(3);
+
+
+            }
         }
 
         // Q 버튼 클릭(좌로 굴러)

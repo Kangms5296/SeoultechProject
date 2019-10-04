@@ -24,20 +24,18 @@ public class WeaponSlotSctipt : MonoBehaviour
     private float deactivatedWeaponImageAlpha;
 
     private Coroutine ActivatingCoroutine = null;
-
-    private string weaponName;  // 등록한 아이템 이름
-    private int conUsing;       // 남은 사용 횟수
-    private int maxUsing;       // 최대 사용 횟수
+    
+    private WeaponScript conWeapon;
 
     public void InitSlot()
     {
-        activatedColor = new Color(1, 1, 1, 80 / 255.0f);
+        activatedColor = new Color(1, 1, 1, 150 / 255.0f);
         activatedSize = 0.8f;
-        activatedWeaponImageAlpha = 200 / 255.0f;
+        activatedWeaponImageAlpha = 220 / 255.0f;
 
-        deactivatedColor = new Color(0, 0, 0, 120 / 255.0f);
+        deactivatedColor = new Color(0, 0, 0, 140 / 255.0f);
         deactivatedSize = 0.6f;
-        deactivatedWeaponImageAlpha = 120 / 255.0f;
+        deactivatedWeaponImageAlpha = 140 / 255.0f;
     }
 
     public void ActivateSlot()
@@ -56,32 +54,33 @@ public class WeaponSlotSctipt : MonoBehaviour
         ActivatingCoroutine = StartCoroutine(Deactivating());
     }
 
-    public void SetWeapon(string weaponName, int conUsing, int maxUsing)
+    public void SetWeapon(WeaponScript newWeapon)
     {
-        // 새로운 무기를 slot에 추가.
-        this.weaponName = weaponName;
+        // 새 무기를 등록
+        conWeapon = newWeapon;
 
-        // slot 이미지를 변경
+        // 등록한 무기로 slot 이미지를 변경
         emptyText.enabled = false;
-        weaponImage.sprite = ResourcesObjectCaching.GetWeaponSprite(weaponName);
+        weaponImage.sprite = ResourcesObjectCaching.GetWeaponSprite(conWeapon.weaponName);
         weaponImage.enabled = true;
 
-        // 남은 사용 횟수를 변경
-        this.conUsing = conUsing;
-        this.maxUsing = maxUsing;
-        usingText.text = string.Format("{0:D2} / {1:D2}", conUsing, maxUsing);
+        // 등록한 무기의 남은 사용 횟수를 변경
+        usingText.enabled = true;
+        usingText.text = string.Format("{0:D2} / {1:D2}", conWeapon.conUsing, conWeapon.maxUsing);
     }
 
     public void ResetWeapon()
     {
-        weaponName = "";
+        conWeapon = null;
 
         emptyText.enabled = true;
         weaponImage.enabled = false;
+        usingText.enabled = false;
+    }
 
-        conUsing = 0;
-        maxUsing = 0;
-        usingText.text = string.Format("{0:D2} / {1:D2}", conUsing, maxUsing);
+    public WeaponScript GetWeapon()
+    {
+        return conWeapon;
     }
 
     private IEnumerator Activating()

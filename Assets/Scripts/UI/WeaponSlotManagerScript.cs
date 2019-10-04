@@ -31,13 +31,18 @@ public class WeaponSlotManagerScript : MonoBehaviour
         conIndex = index;
     }
 
-    public void SetWeapon(string weaponName, int conUsing, int maxUsing)
+    public void SetWeapon(WeaponScript newWeapon)
     {
-        weaponSlots[conIndex].SetWeapon(weaponName, conUsing, maxUsing);
+        weaponSlots[conIndex].SetWeapon(newWeapon);
     }
 
     public void ResetWeapon()
     {
         weaponSlots[conIndex].ResetWeapon();
+    }
+
+    public WeaponScript GetWeapon(int index)
+    {
+        return weaponSlots[index].GetWeapon();
     }
 }

@@ -9,6 +9,7 @@ public class WeaponScript : MonoBehaviour
     [Header("Weapon Component")]
     public GameObject drop;
     public GameObject equiped;
+    public GameObject back;
 
     [Header("Weapon Info")]
     // 현재 이 아이템의 이름
@@ -47,13 +48,23 @@ public class WeaponScript : MonoBehaviour
     public void ChangeToDrop()
     {
         equiped.SetActive(false);
+
         drop.SetActive(true);
     }
 
     public void ChangeToEquiped()
     {
+        back.SetActive(false);
         drop.SetActive(false);
+
         equiped.SetActive(true);
+    }
+
+    public void ChangeToBack()
+    {
+        equiped.SetActive(false);
+
+        back.SetActive(true);
     }
 
     public void PreAttack()
