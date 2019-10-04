@@ -10,6 +10,9 @@ public class WeaponScript : MonoBehaviour
     public GameObject drop;
     public GameObject equiped;
     public GameObject back;
+    public GameObject belly;
+    private GameObject conWeaponComponent;
+
 
     [Header("Weapon Info")]
     // 현재 이 아이템의 이름
@@ -43,28 +46,39 @@ public class WeaponScript : MonoBehaviour
         if(useMuzzle)
             muzzleFlash = muzzle.Find("Flash").GetComponent<ParticleSystem>();
 
+        conWeaponComponent = drop;
     }
 
     public void ChangeToDrop()
     {
-        equiped.SetActive(false);
+        conWeaponComponent.SetActive(false);
 
         drop.SetActive(true);
+        conWeaponComponent = drop;
     }
 
     public void ChangeToEquiped()
     {
-        back.SetActive(false);
-        drop.SetActive(false);
+        conWeaponComponent.SetActive(false);
 
         equiped.SetActive(true);
+        conWeaponComponent = equiped;
     }
 
     public void ChangeToBack()
     {
-        equiped.SetActive(false);
+        conWeaponComponent.SetActive(false);
 
         back.SetActive(true);
+        conWeaponComponent = back;
+    }
+
+    public void ChangeToBelly()
+    {
+        conWeaponComponent.SetActive(false);
+
+        belly.SetActive(true);
+        conWeaponComponent = belly;
     }
 
     public void PreAttack()

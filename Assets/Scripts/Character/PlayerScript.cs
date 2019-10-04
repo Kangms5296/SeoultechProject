@@ -16,6 +16,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     public Transform handlingWeaponParent;                      // 플레이어가 들고있는 무기의 부모
     public Transform backWeaponParent;                          // 플레이어가 등에 매고있는 무기의 부모
+    public Transform bellyWeaponParent;                         // 플레이어가 배에 걸고있는 무기의 부모
     public Transform droppedWeaponParent;                       // 필드에 드랍되는 무기들의 부모
 
     public PlayerSkillScript skillManager;                      // 플레이어 스킬 관련 스크립트
@@ -61,7 +62,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private WeaponScript conWeapon;                             // 현재 손에 쥐고있는 무기 정보
     private int conWeaponIndex;                                 // 현재 사용하는 무기의 slot 정보
 
-
     private bool isFocusMode = false;                           // 현재 집중모드를 사용중인가?
     private Coroutine attackMovingCoroutine;                    // 질주 코루틴
 
@@ -75,11 +75,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             //  Move         Jump         Attack     Running     Pick Up     weapon Change       Roll        Focus Mode  Focue Mode Attack
             {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,}, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
-            {   false,       false,       false,     false,      false,      true ,              false,      false,      false,}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      false ,              false,      false,      false,}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
             {   false,       false,       false,     false,      false,      false,              true ,      false,      false,}, // 2    Attack   <= 현재 공격을 하는 중 ~이 가능한가?
             {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,}, // 3    Running  <= 이 배열은 쓰이지 않는다.
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 4    Pick Up
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 5    Weapon Change
+            {   true,        false,       false,     true,       false,      false,              false,      false,      false,}, // 5    Weapon Change
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 6    Roll
             {   false,       false,       true ,     false,      false,      false,              false,      true ,      true ,}, // 7    Focue Mode
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 8    Focue Mode Attack
@@ -91,7 +91,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         StartCoroutine(IsGrounding());
         StartCoroutine(ContinuousAttackJudgment());
     }
-
     
     void Update()
     {
@@ -386,8 +385,19 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             Vector3 temp = crossHair.CrossHairWorldPosition();
 
-            rot = new Vector2(transform.position.x - temp.x, -(transform.position.z - temp.z + 1.1f));
-            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
+            switch (conWeaponType)
+            {
+                case Weapontype.Swing:
+                case Weapontype.Shooting:
+                    rot = new Vector2(transform.position.x - temp.x, -(transform.position.z - temp.z + 1.1f));
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
+                    break;
+
+                case Weapontype.Throwing:
+                    rot = new Vector2(transform.position.x - temp.x, -(transform.position.z - temp.z));
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
+                    break;
+            }
         }
         else
         {
@@ -899,17 +909,48 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         conAction = 0;
     }
 
+    // 무기 교체 모션 실행
     private void WeaponChangeStart()
     {
-        // 이동을 멈춘다.
-        StopMove();
+        switch(conWeaponType)
+        {
+            case Weapontype.None:
+                WeaponScript weapon = weaponSlotManager.GetWeapon(conWeaponIndex);
 
-        // 무기 교체 모션 실행
-        animator.SetTrigger("WeaponChange");
-        conAction = 5;
+                if (weapon != null)
+                {
+                    switch (weapon.weaponType)
+                    {
+                        // 빈 손에서 등에 매고있는 무기를 드는 애니메이션 실행.
+                        case Weapontype.Shooting:
+                        case Weapontype.Swing:
+                            animator.SetTrigger("WeaponChangeToBackWeapon");
+                            conAction = 5;
+                            break;
+
+                        // 빈 손에서 배에 걸고있는 무기를 드는 애니메이션 실행.
+                        case Weapontype.Throwing:
+                            animator.SetTrigger("WeaponChangeToBellyWeapon");
+                            conAction = 5;
+                            break;
+                    }
+                }
+                break;
+
+            case Weapontype.Shooting:
+            case Weapontype.Swing:
+                animator.SetTrigger("WeaponChangeToBackWeapon");
+                conAction = 5;
+                break;
+
+            case Weapontype.Throwing:
+                animator.SetTrigger("WeaponChangeToBellyWeapon");
+                conAction = 5;
+                break;
+        }
     }
 
-    private void WeaponChanging()
+    private void WeaponChangeToBackWeapon()
     {
         Transform weapon;
 
@@ -924,23 +965,95 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             weapon.GetComponent<WeaponScript>().ChangeToBack();
         }
 
-        // 가져오려는 slot에 물건이 있다면
-        if(weaponSlotManager.GetWeapon(conWeaponIndex) != null)
-        {
-            // 무기를 손으로 이동
-            weapon = weaponSlotManager.GetWeapon(conWeaponIndex).transform;
-            weapon.SetParent(handlingWeaponParent);
-            weapon.localPosition = Vector3.zero;
-            weapon.localRotation = Quaternion.Euler(0, 0, 0);
-            weapon.GetComponent<WeaponScript>().ChangeToEquiped();
+        // 선택한 slot에 저장되어있는 무기를 가져온다.
+        WeaponScript newWeapon = weaponSlotManager.GetWeapon(conWeaponIndex);
 
-            conWeapon = weapon.GetComponent<WeaponScript>();
-            conWeaponType = conWeapon.weaponType;
-        }
-        else
+        // 가져오려는 slot에 물건이 없다면..
+        if (newWeapon == null)
         {
             conWeapon = null;
             conWeaponType = Weapontype.None;
+        }
+        else
+        {
+            // 무기를 배에서 얻는다면..
+            if(newWeapon.weaponType == Weapontype.Throwing)
+            {
+                conWeapon = null;
+                conWeaponType = Weapontype.None;
+                
+                if (weaponSlotManager.GetWeapon(conWeaponIndex).weaponType == Weapontype.Throwing)
+                    animator.SetTrigger("WeaponChangeToBellyWeapon");
+                else
+                    animator.SetTrigger("WeaponChangeToBackWeapon");
+            }
+            // 무기를 등에서 얻는다면..
+            else
+            {
+                // 무기를 손으로 이동
+                weapon = weaponSlotManager.GetWeapon(conWeaponIndex).transform;
+                weapon.SetParent(handlingWeaponParent);
+                weapon.localPosition = Vector3.zero;
+                weapon.localRotation = Quaternion.Euler(0, 0, 0);
+                weapon.GetComponent<WeaponScript>().ChangeToEquiped();
+
+                conWeapon = weapon.GetComponent<WeaponScript>();
+                conWeaponType = conWeapon.weaponType;
+            }
+        }
+    }
+
+    private void WeaponChangeToBellyWeapon()
+    {
+        Transform weapon;
+
+        // 현재 무기를 가지고 있다면
+        if (conWeaponType != Weapontype.None)
+        {
+            // 무기를 배로 이동
+            weapon = handlingWeaponParent.GetChild(0);
+            weapon.SetParent(bellyWeaponParent);
+            weapon.localPosition = Vector3.zero;
+            weapon.localRotation = Quaternion.Euler(0, 0, 0);
+            weapon.GetComponent<WeaponScript>().ChangeToBelly();
+        }
+
+        // 선택한 slot에 저장되어있는 무기를 가져온다.
+        WeaponScript newWeapon = weaponSlotManager.GetWeapon(conWeaponIndex);
+
+        // 가져오려는 slot에 물건이 없다면..
+        if (newWeapon == null)
+        {
+            conWeapon = null;
+            conWeaponType = Weapontype.None;
+        }
+        else
+        {
+            // 무기를 등에서 얻는다면..
+            if (newWeapon.weaponType == Weapontype.Swing || newWeapon.weaponType == Weapontype.Shooting)
+            {
+                conWeapon = null;
+                conWeaponType = Weapontype.None;
+
+                // 등에서 무기를 얻는 애니메이션을 실행
+                if (weaponSlotManager.GetWeapon(conWeaponIndex).weaponType == Weapontype.Throwing)
+                    animator.SetTrigger("WeaponChangeToBellyWeapon");
+                else
+                    animator.SetTrigger("WeaponChangeToBackWeapon");
+            }
+            // 무기를 배에서 얻는다면..
+            else
+            {
+                // 무기를 손으로 이동
+                weapon = weaponSlotManager.GetWeapon(conWeaponIndex).transform;
+                weapon.SetParent(handlingWeaponParent);
+                weapon.localPosition = Vector3.zero;
+                weapon.localRotation = Quaternion.Euler(0, 0, 0);
+                weapon.GetComponent<WeaponScript>().ChangeToEquiped();
+
+                conWeapon = weapon.GetComponent<WeaponScript>();
+                conWeaponType = conWeapon.weaponType;
+            }
         }
     }
 

@@ -50,7 +50,7 @@ public class CrossHairScript : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
-
+   
     public Vector3 CrossHairWorldPosition()
     {
         float x = rect.anchoredPosition.x + 960;
