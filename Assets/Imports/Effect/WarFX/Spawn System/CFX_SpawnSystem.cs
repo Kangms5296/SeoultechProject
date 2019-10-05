@@ -153,7 +153,7 @@ public class CFX_SpawnSystem : MonoBehaviour
 			CFX_AutoDestructShuriken[] autoDestruct = newObj.GetComponentsInChildren<CFX_AutoDestructShuriken>(true);
 			foreach(CFX_AutoDestructShuriken ad in autoDestruct)
 			{
-				ad.OnlyDeactivate = true;
+				//ad.OnlyDeactivate = true;
 			}
 			//Set flag to not destruct light
 			CFX_LightIntensityFade[] lightIntensity = newObj.GetComponentsInChildren<CFX_LightIntensityFade>(true);

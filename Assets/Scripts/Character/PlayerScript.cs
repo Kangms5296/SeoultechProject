@@ -75,11 +75,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         {
             //  Move         Jump         Attack     Running     Pick Up     weapon Change       Roll        Focus Mode  Focue Mode Attack
             {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,}, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
-            {   false,       false,       false,     false,      false,      false ,              false,      false,      false,}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
             {   false,       false,       false,     false,      false,      false,              true ,      false,      false,}, // 2    Attack   <= 현재 공격을 하는 중 ~이 가능한가?
             {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,}, // 3    Running  <= 이 배열은 쓰이지 않는다.
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 4    Pick Up
-            {   true,        false,       false,     true,       false,      false,              false,      false,      false,}, // 5    Weapon Change
+            {   true ,       false,       false,     true ,      false,      false,              false,      false,      false,}, // 5    Weapon Change
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 6    Roll
             {   false,       false,       true ,     false,      false,      false,              false,      true ,      true ,}, // 7    Focue Mode
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 8    Focue Mode Attack
@@ -199,6 +199,19 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                     // 조준
                     Aim();
                     break;
+
+                case Weapontype.Throwing:
+                    crossHair.Init(transform.forward);
+
+                    isFocusMode = true;
+
+                    // 이동을 멈춘다.
+                    StopMove();
+
+                    // 조준
+                    ThrowingAim();
+                    break;
+
             }
         }
     }
@@ -494,6 +507,19 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
                 // 공격 준비
                 conWeapon.PreAttack();
+
+                // slot을 비운다.
+                weaponSlotManager.ResetWeapon();
+
+                // 조준해서 던진경우
+                if(isFocusMode)
+                {
+                    // 딜레이 코루틴 시작
+                    skillManager.Focus();
+
+                    // CrossHair 제거
+                    crossHair.Destroy();
+                }
 
                 animator.SetTrigger("Throwing");
                 conAction = 2;
@@ -1103,5 +1129,45 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     {
         animator.SetTrigger("Rush");
         conAction = 7;
+    }
+
+    private void ThrowingAim()
+    {
+        animator.SetTrigger("ThrowingAim");
+        conAction = 7;
+    }
+
+    private void Throwing()
+    {
+        conWeapon.transform.SetParent(droppedWeaponParent);
+
+        // 집중상태에서는 클릭한 좌표로 던진다.
+        if (isFocusMode)
+        {
+            isFocusMode = false;
+
+            Vector3 temp = crossHair.CrossHairWorldPosition();
+            Vector3 targetPos = new Vector3(temp.x, 0, temp.z);
+
+            float magnitude = Vector3.Distance(targetPos, transform.position);
+            Debug.Log(magnitude);
+
+            conWeapon.throwingScript.Init(transform.forward, magnitude * 39);
+        }
+        // 집중상태가 아닌 경우 적당한 힘으로 던진다.
+        else
+            conWeapon.throwingScript.Init(transform.forward, 200);
+
+        conWeaponType = Weapontype.None;
+        conWeapon = null;
+
+
+    }
+
+    private void ThrowingEnd()
+    {
+        // 이동
+        animator.SetTrigger("Move");
+        conAction = 0;
     }
 }

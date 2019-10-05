@@ -38,6 +38,9 @@ public class WeaponScript : MonoBehaviour
     public string projectileName;
     private ParticleSystem muzzleFlash;
 
+    [Header("In Use Throwing")]
+    public ThrowObejctScript throwingScript;
+
     // Start is called before the first frame update
     void Start()
     {
