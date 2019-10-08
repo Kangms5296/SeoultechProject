@@ -182,7 +182,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                     // 이동을 멈춘다.
                     StopMove();
 
-                    // 조준
+                    // 돌진 방향 조준
                     Rush();
 
                     break;
@@ -196,11 +196,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                     // 이동을 멈춘다.
                     StopMove();
 
-                    // 조준
+                    // 사격 위치 조준
                     Aim();
                     break;
 
                 case Weapontype.Throwing:
+
                     crossHair.Init(transform.forward);
 
                     isFocusMode = true;
@@ -208,7 +209,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                     // 이동을 멈춘다.
                     StopMove();
 
-                    // 조준
+                    // 던질 위치 조준
                     ThrowingAim();
                     break;
 
