@@ -13,10 +13,6 @@ public class ThrowObejctScript : MonoBehaviour
     private Collider coll;
     private Rigidbody rigid;
 
-    private Vector3 moveVector;
-    private float magnitude;
-
-
     // Start is called before the first frame update
     void Start()
     {
@@ -27,9 +23,6 @@ public class ThrowObejctScript : MonoBehaviour
 
     public void Init(Vector3 moveVector, float magnitude)
     {
-        this.moveVector = moveVector;
-        this.magnitude = magnitude;
-
         coll.enabled = true;
         rigid.useGravity = true;
         rigid.AddForce(moveVector * magnitude + Vector3.up * 250);

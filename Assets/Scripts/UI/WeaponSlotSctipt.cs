@@ -67,6 +67,14 @@ public class WeaponSlotSctipt : MonoBehaviour
         // 등록한 무기의 남은 사용 횟수를 변경
         usingText.enabled = true;
         usingText.text = string.Format("{0:D2} / {1:D2}", conWeapon.conUsing, conWeapon.maxUsing);
+
+        conWeapon.usingWeaponEvent += ChangeUsing;
+    }
+
+    public void ChangeUsing()
+    {
+        Debug.Log(11133);
+        usingText.text = string.Format("{0:D2} / {1:D2}", conWeapon.conUsing, conWeapon.maxUsing);
     }
 
     public void ResetWeapon()

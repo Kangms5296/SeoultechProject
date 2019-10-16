@@ -4,52 +4,42 @@ using UnityEngine;
 
 public enum Weapontype { None, Swing, Shooting, Throwing };
 
-public class WeaponScript : MonoBehaviour
+public abstract class WeaponScript : MonoBehaviour
 {
     [Header("Weapon Component")]
     public GameObject drop;
     public GameObject equiped;
     public GameObject back;
     public GameObject belly;
-    private GameObject conWeaponComponent;
+    protected GameObject conWeaponComponent;
 
 
     [Header("Weapon Info")]
-    // 현재 이 아이템의 이름
+    // 아이템의 이름
     public string weaponName;
-    // 현재 이 아이템의 종류
+    // 아이템의 종류
     public Weapontype weaponType;
-    // 현재 이 아이템의 남은 사용량
+    // 아이템의 남은 사용량
     public int conUsing;
-    // 현재 이 아이템의 최대 사용량
+    // 아이템의 최대 사용량
     public int maxUsing;
-    // 현재 이 아이템의 공격력
+    // 아이템의 공격력
     public int damage;
-
-    [Header("In Use Swing")]
-    public bool useWeaponTrail;
-    public MeleeWeaponTrail meleeWeaponTrail;
-
-    [Header("In Use Shooting")]
-    public float recoil;                            // 총기 반동
-    public float distance;                          // 투사체 거리
-    public bool useMuzzle;
-    public Transform muzzle;
-    public string projectileName;
-    private ParticleSystem muzzleFlash;
-
-    [Header("In Use Throwing")]
-    public ThrowObejctScript throwingScript;
+    // 현재 아이템을 사용할 때 발생되는 이벤트
+    public delegate void UsingWeaponEvent();
+    public event UsingWeaponEvent usingWeaponEvent;
 
     // Start is called before the first frame update
-    void Start()
+    virtual protected void Start()
     {
+        // 초기 시작 시 사용 횟수를 최대로
         conUsing = maxUsing;
 
-        if(useMuzzle)
-            muzzleFlash = muzzle.Find("Flash").GetComponent<ParticleSystem>();
-
+        // 초기 시작 시 Drop된 상태
         conWeaponComponent = drop;
+
+        // 무기 사용 이벤트 생성 및 등록
+        usingWeaponEvent = delegate { };
     }
 
     public void ChangeToDrop()
@@ -84,33 +74,17 @@ public class WeaponScript : MonoBehaviour
         conWeaponComponent = belly;
     }
 
-    public void PreAttack()
+    public void UsingWeapon()
     {
-        if (useWeaponTrail)
-            meleeWeaponTrail.Emit = true;
+        conUsing--;
+        
+        usingWeaponEvent();
     }
 
-    public void Attack(Vector3 attackVector)
-    {
-        if(useMuzzle)
-        {
-            // 투사체를 생성하여 발사
-            GameObject temp = ObjectPullManager.GetInstanceByName(projectileName);
-            if (temp != null)
-            {
-                ProjectileScript projectile = temp.GetComponent<ProjectileScript>();
-                projectile.Init(muzzle.position, attackVector, damage, distance);
-            }
 
-            // 총구 이펙트
-            muzzleFlash.Emit(1);
-        }
+    public abstract void PreAttack();
+    public abstract void Attack(bool isFocusMode, Vector3 attackVector, float attackMagnitude);
+    public abstract void PostAttack();
 
-    }
 
-    public void PostAttack()
-    {
-        if (useWeaponTrail)
-            meleeWeaponTrail.Emit = false;
-    }
 }
