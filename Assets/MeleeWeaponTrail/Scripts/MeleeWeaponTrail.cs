@@ -353,4 +353,9 @@ public class MeleeWeaponTrail : MonoBehaviour
 			pointList.Remove(p);
 		}
 	}
+
+    public void ActiveFalseTrailObject()
+    {
+        _trailObject.SetActive(false);
+    }
 }

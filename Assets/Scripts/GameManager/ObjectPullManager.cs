@@ -28,6 +28,7 @@ public class ObjectPullManager : MonoBehaviour
                 temp.Add(Instantiate(pullInfos[i].instance, this.transform));
 
             pullList.Add(pullInfos[i].instance.name, temp);
+            Debug.Log(pullInfos[i].instance.name);
         }
     }
 

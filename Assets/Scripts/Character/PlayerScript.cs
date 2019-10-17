@@ -15,6 +15,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public Transform backWeaponParent;                          // 플레이어가 등에 매고있는 무기의 부모
     public Transform bellyWeaponParent;                         // 플레이어가 배에 걸고있는 무기의 부모
     public Transform droppedWeaponParent;                       // 필드에 드랍되는 무기들의 부모
+    public Transform cantUseWeaponParent;                       // 파괴된 무기들의 부모
 
     public PlayerSkillScript skillManager;                      // 플레이어 스킬 관련 스크립트
     public WeaponSlotManagerScript weaponSlotManager;           // 플레이어 무기 교체 관련 스크립트
@@ -592,7 +593,32 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 // 몽둥이, 검 등의 무기
                 case Weapontype.Swing:
 
-                    conWeapon.PostAttack();
+                    if (conWeapon.conUsing <= 0)
+                    {
+                        // 파괴 이펙트 생성
+                        GameObject temp = ObjectPullManager.GetInstanceByName("WeaponBreaking");
+                        temp.transform.position = conWeapon.transform.position + temp.transform.position;
+                        temp.SetActive(true);
+
+                        // 무기 파괴
+                        conWeapon.transform.SetParent(cantUseWeaponParent);
+                        conWeapon.transform.localPosition = Vector3.zero;
+                        conWeapon.gameObject.SetActive(false);
+                        conWeapon.DestroyWeapon();
+
+                        // slot을 비운다.
+                        weaponSlotManager.ResetWeapon();
+
+                        // 현재 가지는 무기 정보 초기화
+                        conWeaponType = Weapontype.None;
+                        conWeapon = null;
+                    }
+                    else
+                    {
+                        // 후처리
+                        conWeapon.PostAttack();
+                    }
+
 
                     // 조준 후 돌진한 상태이면 조준선을 삭제
                     if (isFocusMode)
@@ -1098,7 +1124,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             // CrossHair 제거
             crossHair.Destroy();
         }
-        conWeapon.PostAttack();
+
+        if(conWeapon != null)
+            conWeapon.PostAttack();
 
         // 구르기 시작 위치에 먼지 파티클 생성
         dustParticle.Emit(2);
@@ -1144,7 +1172,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     private void Throwing()
     {
-        conWeapon.transform.SetParent(droppedWeaponParent);
+        conWeapon.transform.SetParent(cantUseWeaponParent);
 
         // 집중상태에서는 클릭한 좌표로 던진다.
         if (isFocusMode)
@@ -1165,10 +1193,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         // slot을 비운다.
         weaponSlotManager.ResetWeapon();
 
+        // 현재 무기 정보 초기화
         conWeaponType = Weapontype.None;
         conWeapon = null;
-
-
     }
 
     private void ThrowingEnd()

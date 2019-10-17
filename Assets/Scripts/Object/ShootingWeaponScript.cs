@@ -62,4 +62,9 @@ public class ShootingWeaponScript : WeaponScript
     {
 
     }
+
+    public override void DestroyWeapon()
+    {
+
+    }
 }

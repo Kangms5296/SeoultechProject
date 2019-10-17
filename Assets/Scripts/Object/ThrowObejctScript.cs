@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ThrowObejctScript : MonoBehaviour
 {
-    public enum ExplotionType { None, Instant, Time};                     // 폭발 안함, 즉시 폭발, 시간 폭발
+    public enum ExplotionType { None, Instant, Time};               // 폭발 안함, 즉시 폭발, 시간 폭발
     public ExplotionType type;
 
     public float explosionTime;                                     // 폭발까지의 시간
@@ -36,7 +36,7 @@ public class ThrowObejctScript : MonoBehaviour
     {
         GameObject temp = ObjectPullManager.GetInstanceByName(particleName);
 
-        temp.transform.position = transform.position;
+        temp.transform.position = transform.position + temp.transform.position;
         temp.SetActive(true);
 
         // 오브젝트 삭제

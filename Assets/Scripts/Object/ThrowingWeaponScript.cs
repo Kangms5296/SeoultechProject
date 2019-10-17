@@ -30,4 +30,9 @@ public class ThrowingWeaponScript : WeaponScript
     public override void PostAttack()
     {
     }
+
+    public override void DestroyWeapon()
+    {
+
+    }
 }

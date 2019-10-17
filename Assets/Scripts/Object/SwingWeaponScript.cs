@@ -4,6 +4,7 @@ public class SwingWeaponScript : WeaponScript
 {
     [Header("Swing Used")]
     public MeleeWeaponTrail meleeWeaponTrail;
+    
 
     // Start is called before the first frame update
     override protected void Start()
@@ -27,5 +28,10 @@ public class SwingWeaponScript : WeaponScript
     public override void PostAttack()
     {
         meleeWeaponTrail.Emit = false;
+    }
+
+    public override void DestroyWeapon()
+    {
+        meleeWeaponTrail.ActiveFalseTrailObject();
     }
 }
