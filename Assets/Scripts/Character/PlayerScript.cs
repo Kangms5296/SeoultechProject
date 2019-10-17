@@ -513,9 +513,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 // 공격 준비
                 conWeapon.PreAttack();
 
-                // slot을 비운다.
-                weaponSlotManager.ResetWeapon();
-
                 // 조준해서 던진경우
                 if(isFocusMode)
                 {
@@ -644,7 +641,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         isFinishAttackDelay = true;
 
         float conTime = 0;
-        float maxTime = 0.3f;
+        float maxTime = 0.2f;
         while(conTime < maxTime)
         {
             conTime += Time.deltaTime;
@@ -1161,9 +1158,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             
             conWeapon.Attack(true, transform.forward, magnitude * 39);
         }
-        // 집중상태가 아닌 경우 적당한 힘으로 던진다.
+        // 집중상태가 아닌 경우 적당한 힘으로 전방에 던진다.
         else
             conWeapon.Attack(false, transform.forward, 200);
+        
+        // slot을 비운다.
+        weaponSlotManager.ResetWeapon();
 
         conWeaponType = Weapontype.None;
         conWeapon = null;

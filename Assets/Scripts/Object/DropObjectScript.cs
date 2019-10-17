@@ -42,7 +42,7 @@ public class DropObjectScript : MonoBehaviour
             WorldSpaceCanvasUIs.SetActive("Click F", false);
             
             isThereWeaponAroundPlayer = false;
-            dropObject = null;
+            //dropObject = null;
         }
     }
 }
