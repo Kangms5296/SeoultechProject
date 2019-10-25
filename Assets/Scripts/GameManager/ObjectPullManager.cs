@@ -11,13 +11,15 @@ public class ObjectPullManager : MonoBehaviour
     {
         public GameObject instance;
         public int size;
+
+        public Transform parentObject;
     }
     public List<PullInfo> pullInfos;
 
     private static Dictionary<string, List<GameObject>> pullList;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         pullList = new Dictionary<string, List<GameObject>>();
         
@@ -25,10 +27,9 @@ public class ObjectPullManager : MonoBehaviour
         {
             List<GameObject> temp = new List<GameObject>();
             for (int j = 0; j < pullInfos[i].size; j++)
-                temp.Add(Instantiate(pullInfos[i].instance, this.transform));
+                temp.Add(Instantiate(pullInfos[i].instance, pullInfos[i].parentObject));
 
             pullList.Add(pullInfos[i].instance.name, temp);
-            Debug.Log(pullInfos[i].instance.name);
         }
     }
 

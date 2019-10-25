@@ -56,8 +56,12 @@ public class WeaponSlotSctipt : MonoBehaviour
 
     public void SetWeapon(WeaponScript newWeapon)
     {
+        if(conWeapon != null)
+            conWeapon.usingWeaponEvent -= ChangeUsing;
+
         // 새 무기를 등록
         conWeapon = newWeapon;
+        conWeapon.usingWeaponEvent += ChangeUsing;
 
         // 등록한 무기로 slot 이미지를 변경
         emptyText.enabled = false;
@@ -67,14 +71,11 @@ public class WeaponSlotSctipt : MonoBehaviour
         // 등록한 무기의 남은 사용 횟수를 변경
         usingText.enabled = true;
         usingText.text = string.Format("{0:D2} / {1:D2}", conWeapon.conUsing, conWeapon.maxUsing);
-
-        conWeapon.usingWeaponEvent -= ChangeUsing;
-        conWeapon.usingWeaponEvent += ChangeUsing;
     }
 
     public void ChangeUsing()
     {
-        Debug.Log(11133);
+        Debug.Log(this);
         usingText.text = string.Format("{0:D2} / {1:D2}", conWeapon.conUsing, conWeapon.maxUsing);
     }
 

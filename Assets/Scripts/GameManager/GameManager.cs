@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Cinemachine;
 
 public class GameManager : MonoBehaviour
 {
@@ -18,7 +19,10 @@ public class GameManager : MonoBehaviour
 
     // ===================================================== public function ============================================================
 
-    public void RemoveMouseCursor()
+
+    // ===================================================== private function ============================================================
+
+    private void RemoveMouseCursor()
     {
         // Mouse Lock
         Cursor.lockState = CursorLockMode.Locked;

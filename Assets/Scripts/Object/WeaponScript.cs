@@ -13,6 +13,8 @@ public abstract class WeaponScript : MonoBehaviour
     public GameObject belly;
     protected GameObject conWeaponComponent;
 
+    [Header("User Info")]
+    public PlayerScript player;
 
     [Header("Weapon Info")]
     // 아이템의 이름
@@ -81,10 +83,21 @@ public abstract class WeaponScript : MonoBehaviour
         usingWeaponEvent();
     }
 
+    public void UseWeapon(PlayerScript player)
+    {
+        this.player = player;
+    }
+
+    public void Throwweapon()
+    {
+        player = null;
+    }
+
 
     public abstract void PreAttack();
     public abstract void Attack(bool isFocusMode, Vector3 attackVector, float attackMagnitude);
     public abstract void PostAttack();
+   
 
     public abstract void DestroyWeapon();
 

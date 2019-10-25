@@ -2,7 +2,7 @@
 using UnityEngine;
 using Cinemachine;
 
-public class PlayerScript : MonoBehaviour, CharacterScript
+public class PlayerScript : MonoBehaviour, ICharacterScript
 {
     // 플레이어 컴포넌트
     private CharacterController controller;
@@ -27,6 +27,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private int conAction = 0;
 
     [Header("Character Info")]
+    public int maxHp;                                           // 플레이어 최대 체력
+    private int conHp;                                          // 플레이어 현재 체력
+
     public float conMaxSpeed;                                   // 현재 최대 속도
     public float walkMaxSpeed;                                  // 최대 걷는 속도
     public float runMaxSpeed;                                   // 최대 뛰는 속도
@@ -50,7 +53,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     public float continuousAttackJudgmentMaxTime;               // 연속 공격 판정 최대 시간
     private bool canContinuousAttack = false;                   // 연속 공격 판정 내 공격 버튼을 눌렀는가?
     private bool isFinishAttackDelay = false;                   // 연속 공격 마지막 이후 딜레이인가?
-    private Coroutine FinishAttackDelayCoroutine;                    // 공격 종료 딜레이 코루틴
+    private Coroutine FinishAttackDelayCoroutine;               // 공격 종료 딜레이 코루틴
 
     public float moveMaginitude = 0;                            // 이동 힘
     private Vector3 beforeMove  = Vector3.zero;                 // 이전 프레임에서의 이동 벡터
@@ -62,7 +65,9 @@ public class PlayerScript : MonoBehaviour, CharacterScript
     private int conWeaponIndex;                                 // 현재 사용하는 무기의 slot 정보
 
     private bool isFocusMode = false;                           // 현재 집중모드를 사용중인가?
-    private Coroutine attackMovingCoroutine;                    // 질주 코루틴
+
+    private bool isAttackMovingCoroutineRunning = false;        // 공격 간 전방 이동 코루틴 사용 유무
+    private Coroutine attackMovingCoroutine;                    // 공격 간 전방 이동 코루틴
 
     public float gravity;                                       // 중력 가속도
     private float resultGravity = 0;                            // 현재 작용되는 중력
@@ -291,8 +296,44 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             StopCoroutine(attackMovingCoroutine);
     }
 
+    public int RecoveryHp(int value)
+    {
+        conHp += value;
+        if (conHp > maxHp)
+            conHp = maxHp;
+
+        return conHp;
+    }
+
+    public int DecreaseHp(int value)
+    {
+        conHp -= value;
+        if (conHp < 0)
+            conHp = 0;
+
+        return conHp;
+    }
+
+    public void Die()
+    {
+
+    }
+
+    public void StopAttackMovingCoroutine()
+    {
+        if (isAttackMovingCoroutineRunning)
+        {
+            isAttackMovingCoroutineRunning = false;
+
+            StopCoroutine(attackMovingCoroutine);
+
+            Debug.Log("Player Move Stop");
+        }
+    }
+
     // ===================================================== private function ============================================================
 
+      
     private void Moving()
     {
         if (CanChangeAction[conAction, 0])
@@ -382,7 +423,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
         // 이동 크기 계산
         moveMaginitude = moveVector.magnitude > conMaxSpeed ? conMaxSpeed : moveVector.magnitude;
-        animator.SetFloat("Speed", moveMaginitude * 2 / (runMaxSpeed + walkMaxSpeed));
+        animator.SetFloat("Speed", moveMaginitude / runMaxSpeed);
 
 
 
@@ -459,7 +500,14 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                 // 집중 상태에서의 공격에서는 앞으로 돌진
                 if (isFocusMode)
                 {
-                    conWeapon.Attack(isFocusMode, Vector3.zero, 0);
+                    isFocusMode = false;
+
+                    // 딜레이 코루틴 시작
+                    skillManager.Focus();
+
+                    // CrossHair 제거
+                    crossHair.Destroy();
+
                     attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(6f));
                 }
                 else
@@ -467,13 +515,11 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                     // 달리던 중 공격은 앞으로 돌진
                     if(IsRunning())
                     {
-                        conWeapon.Attack(isFocusMode, Vector3.zero, 0);
                         attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(4f));
                     }
                     // 그 외 조금 이동
                     else
                     {
-                        conWeapon.Attack(isFocusMode, Vector3.zero, 0);
                         attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f));
                     }
                 }
@@ -540,35 +586,54 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             {
                 // 무기가 없다.(주먹질)
                 case Weapontype.None:
-                    animator.SetTrigger("Punch");
 
-                    // 그 외엔 조금 이동
+                    // 앞으로 조금 이동
                     attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f));
+
+                    // 공격
+                    animator.SetTrigger("Punch");
 
                     break;
 
 
                 // 몽둥이, 검 등의 무기
-                case Weapontype.Swing:
-                    animator.SetTrigger("Swing");
-
-
-
-                    // 조준 후 돌진한 상태이면 조준선을 삭제
-                    if (isFocusMode)
+                case Weapontype.Swing:     
+                    
+                    // 무기 파괴 유무 검사
+                    if (conWeapon.conUsing <= 0)
                     {
-                        isFocusMode = false;
+                        // 파괴 이펙트 생성
+                        GameObject temp = ObjectPullManager.GetInstanceByName("WeaponBreaking");
+                        temp.transform.position = conWeapon.transform.position + temp.transform.position;
+                        temp.SetActive(true);
 
-                        // 딜레이 코루틴 시작
-                        skillManager.Focus();
+                        // 무기 파괴
+                        conWeapon.transform.SetParent(cantUseWeaponParent);
+                        conWeapon.transform.localPosition = Vector3.zero;
+                        conWeapon.gameObject.SetActive(false);
+                        conWeapon.DestroyWeapon();
 
-                        // CrossHair 제거
-                        crossHair.Destroy();
+                        // slot을 비운다.
+                        weaponSlotManager.ResetWeapon();
+
+                        // 현재 가지는 무기 정보 초기화
+                        conWeaponType = Weapontype.None;
+                        conWeapon = null;
+
+                        if (FinishAttackDelayCoroutine == null)
+                            FinishAttackDelayCoroutine = StartCoroutine(AttackFinishCoroutine());
+
+                        animator.SetTrigger("Move");
+                        conAction = 0;
                     }
+                    else
+                    {
+                        // 그 외엔 조금 이동
+                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f));
 
-                    // 그 외엔 조금 이동
-                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f));
-
+                        // 공격
+                        animator.SetTrigger("Swing");
+                    }
                     break;
             }
         }
@@ -619,19 +684,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                         conWeapon.PostAttack();
                     }
 
-
-                    // 조준 후 돌진한 상태이면 조준선을 삭제
-                    if (isFocusMode)
-                    {
-                        isFocusMode = false;
-
-                        // 딜레이 코루틴 시작
-                        skillManager.Focus();
-
-                        // CrossHair 제거
-                        crossHair.Destroy();
-                    }
-
                     if (FinishAttackDelayCoroutine == null)
                         FinishAttackDelayCoroutine = StartCoroutine(AttackFinishCoroutine());
 
@@ -650,9 +702,12 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
                     break;
             }
-
-
         }
+    }
+
+    private void SwingWeaponHitAreaOn()
+    {
+        conWeapon.Attack(isFocusMode, transform.forward, 0);
     }
 
     // 연속 공격의 마지막 공격 이후에는 약간의 딜레이
@@ -702,12 +757,6 @@ public class PlayerScript : MonoBehaviour, CharacterScript
         }
     }
     
-
-    private void Damaged()
-    {
-
-    }
-
     private void Running()
     {
         // 점점 최고 속도를 올린다.
@@ -800,14 +849,14 @@ public class PlayerScript : MonoBehaviour, CharacterScript
                     // 어느정도 빠른 속도이면 멈추지 않고 계속 달린다
                     if(IsRunning())
                     {
-                        dustParticle.Emit(3);
+                        dustParticle.Play();
 
                         JumpEnd();
                     }
                     // 그 외는 점프 후 멈춘다.
                     else
                     {
-                        dustParticle.Emit(2);
+                        dustParticle.Play();
 
                         JumpEnd();
                     }
@@ -825,6 +874,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
 
     IEnumerator AttackMovingCoroutine(float distance)
     {
+        isAttackMovingCoroutineRunning = true;
+
         float conTime = 0;
         float maxTime = 1;
 
@@ -835,21 +886,8 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             conTime += Time.deltaTime * 10;
             yield return null;
         }
-    }
 
-    IEnumerator RollingCoroutine(bool isLeft, float distance)
-    {
-        Vector3 initVector = transform.position;
-        Vector3 goalVector = transform.position + transform.forward * distance;
-
-        float conTime = 0;
-        while (conTime < 1)
-        {
-            transform.position = Vector3.Lerp(initVector, goalVector, conTime);
-            conTime += Time.deltaTime * 10;
-            yield return null;
-        }
-        transform.position = goalVector;
+        isAttackMovingCoroutineRunning = false;
     }
 
     IEnumerator ContinuousAttackJudgment()
@@ -891,12 +929,14 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             weapon.position = transform.position + transform.forward * 0.5f;
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
-            // 사용하던 Drop 상태로 변경
+            // 무기를 최초 상태로 초기화
+            conWeapon.Throwweapon();
             conWeapon.ChangeToDrop();
         }
 
         // 새로운 무기로 정보를 교체
         conWeapon = DropObjectScript.dropObject;
+        conWeapon.UseWeapon(this);
         conWeapon.ChangeToEquiped();
 
         // 새로운 무기를 손으로 이동
@@ -939,11 +979,14 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             weapon.SetParent(droppedWeaponParent);
             weapon.position = transform.position + transform.forward * 0.5f;
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
-            weapon.GetComponent<WeaponScript>().ChangeToDrop();
-        }
 
-        // 무기를 착용하기 전까지 주먹질을 한다.
-        conWeaponType = Weapontype.None;
+            // 무기를 최초 상태로 초기화
+            conWeapon.Throwweapon();
+            conWeapon.ChangeToDrop();
+
+            // 현재 무기 상태를 없음 으로 기록.
+            conWeaponType = Weapontype.None;
+        }
     }
 
     private void DisarmEnd()
@@ -1129,7 +1172,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             conWeapon.PostAttack();
 
         // 구르기 시작 위치에 먼지 파티클 생성
-        dustParticle.Emit(2);
+        dustParticle.Play();
 
         // 구르는 애니메이션 실행
         animator.SetTrigger("Roll");
@@ -1142,7 +1185,7 @@ public class PlayerScript : MonoBehaviour, CharacterScript
             transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
 
         // 구르기 모션 실행
-        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(2.5f));
+        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(3f));
     }
 
     private void RollEnd()

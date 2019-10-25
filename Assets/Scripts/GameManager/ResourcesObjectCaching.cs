@@ -13,6 +13,19 @@ public class ResourcesObjectCaching : MonoBehaviour
         CachingWeaponSprites();
     }
 
+
+
+
+
+    public static Sprite GetWeaponSprite(string weaponName)
+    {
+        return weaponSprites[weaponName];
+    }
+
+
+
+
+
     private static void CachingWeaponSprites()
     {
         weaponSprites = new Dictionary<string, Sprite>();
@@ -21,8 +34,5 @@ public class ResourcesObjectCaching : MonoBehaviour
             weaponSprites.Add(temp.name, temp);
     }
 
-    public static Sprite GetWeaponSprite(string weaponName)
-    {
-        return weaponSprites[weaponName];
-    }
+
 }
