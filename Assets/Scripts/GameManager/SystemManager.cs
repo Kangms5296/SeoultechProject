@@ -46,26 +46,24 @@ public class SystemManager : MonoBehaviour
     }
 
 
-    public void HitEffect(float magnitude)
+    public void HitEffect(bool isSlowMode)
     {
         if (isHitEffectCoroutineOn)
             StopCoroutine(hitEffectCoroutine);
 
-        hitEffectCoroutine = StartCoroutine(HitEffectCoroutine(magnitude));
+        hitEffectCoroutine = StartCoroutine(HitEffectCoroutine(isSlowMode));
     }
 
 
 
-    private IEnumerator HitEffectCoroutine(float magnitude)
+    private IEnumerator HitEffectCoroutine(bool isSlowMode)
     {
         isHitEffectCoroutineOn = true;
 
-
-
-
         float value;
 
-        Time.timeScale = 0.1f;
+        if (isSlowMode)
+            Time.timeScale = 0.25f;
 
         while (conHitEffectTime < maxHitEffectTime)
         {
@@ -99,8 +97,8 @@ public class SystemManager : MonoBehaviour
         radialBlurImageEffect.blurSize = 0;
         conHitEffectTime = 0;
 
-
-        Time.timeScale = 1f;
+        if (isSlowMode)
+            Time.timeScale = 1f;
 
         isHitEffectCoroutineOn = false;
     }

@@ -97,7 +97,8 @@ public abstract class WeaponScript : MonoBehaviour
     public abstract void PreAttack();
     public abstract void Attack(bool isFocusMode, Vector3 attackVector, float attackMagnitude);
     public abstract void PostAttack();
-   
+
+    public abstract bool CanAttack();
 
     public abstract void DestroyWeapon();
 

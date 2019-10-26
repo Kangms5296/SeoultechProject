@@ -35,4 +35,9 @@ public class ThrowingWeaponScript : WeaponScript
     {
 
     }
+
+    public override bool CanAttack()
+    {
+        return true;
+    }
 }

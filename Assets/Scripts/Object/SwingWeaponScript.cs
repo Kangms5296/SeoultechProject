@@ -51,6 +51,11 @@ public class SwingWeaponScript : WeaponScript
     {
         meleeWeaponTrail.ActiveFalseTrailObject();
     }
+    
+    public override bool CanAttack()
+    {
+        return true;
+    }
 
     private IEnumerator HitAreaOn()
     {

@@ -170,7 +170,7 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
         // 사망 애니메이션 처리
         anim.SetTrigger("Die");
 
-        // 1초대기
+        // 2초대기
         float conTime = 0;
         while(conTime < 2)
         {
@@ -183,17 +183,17 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
 
         // 1초동안 서서히 캐릭터 삭제
         conTime = 0;
-        while (conTime < 5)
+        while (conTime < 3)
         {
             conTime += Time.deltaTime;
-            meshRenderer.material.SetFloat("_Cutoff", conTime);
-            meshRenderer.material.SetFloat("_Thick", conTime);
+            meshRenderer.material.SetFloat("_Cutoff", conTime / 3);
+            meshRenderer.material.SetFloat("_Thick", conTime / 3);
             yield return null;
         }
         meshRenderer.material.SetFloat("_Cutoff", 1);
         meshRenderer.material.SetFloat("_Thick", 1);
 
-
+        // 캐릭터 삭제
         gameObject.SetActive(false);
     }
 }

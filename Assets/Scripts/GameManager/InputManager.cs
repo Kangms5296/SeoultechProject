@@ -34,6 +34,11 @@ public class InputManager : MonoBehaviour
             player.Attack();
         }
 
+        if(Input.GetMouseButtonUp(0))
+        {
+            player.ContinuousShootingOff();
+        }
+
         // 마우스 오른쪽 키 누르면(조건부 기술)
         if (Input.GetMouseButtonDown(1))
         {

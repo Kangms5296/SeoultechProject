@@ -5,29 +5,25 @@ using UnityEngine;
 public class ProjectileScript : MonoBehaviour
 {
     [Header("Projectile Info")]
-    public float speed;             // 투사체가 날아가는 속도
-    public float distance;          // 투사체가 날아가는 거리
+    public float speed;                 // 투사체가 날아가는 속도
+    
+    public BoxCollider boxCollider;     // 충돌 판정 콜라이더
 
-    public BoxCollider boxCollider;    // 충돌 판정 콜라이더
+    private Coroutine MovingCoroutine;  // 이동 제어 코루틴
 
-    private Coroutine MovingCoroutine;
-
-
-
-
-    // 이동 방향
-    private Vector3 moveVector;
-
-    // 데미지
-    private int damage;
+    private bool isPenetrating;         // 관통 여부
+    private Vector3 moveVector;         // 이동 방향
+    private float distance;             // 이동 거리
+    private int damage;                 // 데미지
 
 
     // 총알이 날아갈 방향과 데미지 등을 입력
-    public void Init(Vector3 startPos, Vector3 moveVector, int damage, float distance)
+    public void Init(Vector3 startPos, Vector3 moveVector, bool isPenetrating, int damage, float distance)
     {
 
         transform.position = startPos;
         this.moveVector = moveVector;
+        this.isPenetrating = isPenetrating;
         this.damage = damage;
         this.distance = distance;
         
@@ -67,5 +63,24 @@ public class ProjectileScript : MonoBehaviour
 
         // 필드에서 삭제
         gameObject.SetActive(false);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.CompareTag("Monster"))
+        {
+            // 몬스터 데미지 처리
+            MonsterScript monster = other.GetComponent<MonsterScript>();
+            monster.TakeDamage(damage, moveVector, 0.1f);
+
+            // 타격 효과
+            SystemManager.Instance.HitEffect(false);
+
+            // 타격 이펙트
+
+            // 관통 여부에 따라 총알 삭제
+            if (!isPenetrating)
+                gameObject.SetActive(false);
+        }
     }
 }

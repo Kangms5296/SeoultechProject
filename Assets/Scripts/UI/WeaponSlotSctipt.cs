@@ -75,7 +75,6 @@ public class WeaponSlotSctipt : MonoBehaviour
 
     public void ChangeUsing()
     {
-        Debug.Log(this);
         usingText.text = string.Format("{0:D2} / {1:D2}", conWeapon.conUsing, conWeapon.maxUsing);
     }
 

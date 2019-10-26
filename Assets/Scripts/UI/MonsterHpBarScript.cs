@@ -62,7 +62,7 @@ public class MonsterHpBarScript : MonoBehaviour
 
         while (conChangingHpRatio - newHpRatio > 0.01f )
         {
-            conChangingHpRatio = Mathf.Lerp(conChangingHpRatio, newHpRatio, Time.deltaTime);
+            conChangingHpRatio = Mathf.Lerp(conChangingHpRatio, newHpRatio, Time.deltaTime * 2);
             changingHp.anchoredPosition = new Vector2(minHpPos * (1 - conChangingHpRatio), 0);
             yield return null;
         }
@@ -78,7 +78,7 @@ public class MonsterHpBarScript : MonoBehaviour
 
         while (conInHpRatio - newHpRatio > 0.01f)
         {
-            conInHpRatio = Mathf.Lerp(conInHpRatio, newHpRatio, Time.deltaTime * 5);
+            conInHpRatio = Mathf.Lerp(conInHpRatio, newHpRatio, Time.deltaTime * 10);
             inHp.anchoredPosition = new Vector2(minHpPos * (1 - conInHpRatio), 0);
             yield return null;
         }

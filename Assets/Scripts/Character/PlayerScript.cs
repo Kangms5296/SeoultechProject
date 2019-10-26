@@ -67,6 +67,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     private bool isFocusMode = false;                           // 현재 집중모드를 사용중인가?
 
+    private bool continuousShootingOn;                          // 연속 총기 공격 판정
+
     private bool isAttackMovingCoroutineRunning = false;        // 공격 간 전방 이동 코루틴 사용 유무
     private Coroutine attackMovingCoroutine;                    // 공격 간 전방 이동 코루틴
 
@@ -96,7 +98,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         StartCoroutine(IsGrounding());
         StartCoroutine(ContinuousAttackJudgment());
     }
-    
+
     void Update()
     {
         // 캐릭터 이동
@@ -332,6 +334,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         }
     }
 
+    
+    public void ContinuousShootingOff()
+    {
+        continuousShootingOn = false;
+    }
+
     // ===================================================== private function ============================================================
 
       
@@ -443,12 +451,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
             switch (conWeaponType)
             {
-                case Weapontype.Swing:
                 case Weapontype.Shooting:
-                    rot = new Vector2(transform.position.x - temp.x, -(transform.position.z - temp.z + 1.1f));
+                    rot = new Vector2(transform.position.x - temp.x, -(conWeapon.transform.position.z - temp.z + 0.6f));
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
                     break;
 
+                case Weapontype.Swing:
                 case Weapontype.Throwing:
                     rot = new Vector2(transform.position.x - temp.x, -(transform.position.z - temp.z));
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
@@ -508,17 +516,15 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
                     // CrossHair 제거
                     crossHair.Destroy();
-
-                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(6f, true));
+                    
+                    float magnitude = Vector3.Distance(crossHair.CrossHairWorldPosition(), transform.position);
+                    magnitude = Mathf.Min(magnitude, 10);
+                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(magnitude - 1f, true));
                 }
                 else
                 {
-                    // 달리던 중 공격은 조금더 앞으로 공격
                     if(IsRunning())
-                    {
                         attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(1.5f, false));
-                    }
-                    // 그 외 조금 이동
                     else
                         attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f, false));
                 }
@@ -539,6 +545,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 조준 중 공격
                 if (conAction == 7)
                 {
+                    continuousShootingOn = true;
+
                     animator.SetTrigger("Shooting");
                     conAction = 8;
                 }
@@ -744,9 +752,19 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 조준 중 공격은..
         if (conAction == 8)
         {
-            // 이후에도 계속 조준
-            animator.SetTrigger("Aim");
-            conAction = 7;
+            // 마우스를 계속 누르고 있으면 연속 공격
+            if(continuousShootingOn && conWeapon.CanAttack())
+            {
+                animator.SetTrigger("Shooting");
+            }
+            else
+            {
+                conWeapon.PostAttack();
+
+                // 조준 상태로 돌아감
+                animator.SetTrigger("Aim");
+                conAction = 7;
+            }
         }
         // 일반 공격
         else
@@ -1229,12 +1247,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         {
             isFocusMode = false;
 
-            Vector3 temp = crossHair.CrossHairWorldPosition();
-            Vector3 targetPos = new Vector3(temp.x, 0, temp.z);
-
-            float magnitude = Vector3.Distance(targetPos, transform.position);
-            
-            conWeapon.Attack(true, transform.forward, magnitude * 39);
+            float magnitude = Vector3.Distance(crossHair.CrossHairWorldPosition(), transform.position);
+            conWeapon.Attack(true, transform.forward, magnitude * 39.5f);
         }
         // 집중상태가 아닌 경우 적당한 힘으로 전방에 던진다.
         else
