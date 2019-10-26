@@ -27,7 +27,7 @@ public class SwingWeaponCollider : MonoBehaviour
             monster.TakeDamage(weaponInfo.damage, weaponInfo.attackVector, 0.5f);
 
             // 타격 효과
-            SystemManager.Instance.HitEffect(0.6f);
+            SystemManager.Instance.HitEffect(0.5f);
 
             // 타격 이펙트
             GameObject effect = ObjectPullManager.GetInstanceByName("Hit");

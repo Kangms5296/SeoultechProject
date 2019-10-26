@@ -59,46 +59,49 @@ public class SystemManager : MonoBehaviour
     private IEnumerator HitEffectCoroutine(float magnitude)
     {
         isHitEffectCoroutineOn = true;
-        Time.timeScale = 0.1f;
+
+
+
 
         float value;
+
+        Time.timeScale = 0.1f;
 
         while (conHitEffectTime < maxHitEffectTime)
         {
             value = conHitEffectTime / maxHitEffectTime;
-            virtualCameraNoise.m_AmplitudeGain = value * magnitude;
-            virtualCameraNoise.m_FrequencyGain = value * 0.1f;
-            chromaticAberration.intensity.value = value * magnitude;
-            radialBlurImageEffect.blurSize = value * magnitude * 10;
+
+            chromaticAberration.intensity.value = value * 0.8f;
+            radialBlurImageEffect.blurSize = value * 1.5f;
 
             conHitEffectTime += Time.deltaTime;
             yield return null;
         }
-        virtualCameraNoise.m_AmplitudeGain = magnitude;
-        virtualCameraNoise.m_FrequencyGain = 0.1f;
-        chromaticAberration.intensity.value = magnitude;
-        radialBlurImageEffect.blurSize = magnitude * 10;
+        chromaticAberration.intensity.value = 0.8f;
+        radialBlurImageEffect.blurSize = 1.5f;
         conHitEffectTime = maxHitEffectTime;
+
+
 
         while (conHitEffectTime > 0)
         {
             value = conHitEffectTime / maxHitEffectTime;
 
-            virtualCameraNoise.m_AmplitudeGain = value * magnitude;
-            virtualCameraNoise.m_FrequencyGain = value * 0.1f;
-            chromaticAberration.intensity.value = value * magnitude;
-            radialBlurImageEffect.blurSize = value * magnitude * 10;
+            //Time.timeScale = 0.1f + 0.9f * (1 - value);
+
+            chromaticAberration.intensity.value = value * 0.8f;
+            radialBlurImageEffect.blurSize = value * 1.5f;
 
             conHitEffectTime -= Time.deltaTime;
             yield return null;
         }
-        virtualCameraNoise.m_AmplitudeGain = 0;
-        virtualCameraNoise.m_FrequencyGain = 0;
         chromaticAberration.intensity.value = 0;
         radialBlurImageEffect.blurSize = 0;
         conHitEffectTime = 0;
 
+
         Time.timeScale = 1f;
+
         isHitEffectCoroutineOn = false;
     }
 

@@ -9,7 +9,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     private Animator animator;
 
     [Header("Outside Object Caching")]
-    public ParticleSystem dustParticle;                         // 점프 후 착지에 사용할 먼지 Particle
+    public ParticleSystem dustParticle;                         // 먼지 Particle
+    public CrossHairScript crossHair;                           // 플레이어 조준 간 화면에 표시되는 crossHair
 
     public Transform handlingWeaponParent;                      // 플레이어가 들고있는 무기의 부모
     public Transform backWeaponParent;                          // 플레이어가 등에 매고있는 무기의 부모
@@ -19,8 +20,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     public PlayerSkillScript skillManager;                      // 플레이어 스킬 관련 스크립트
     public WeaponSlotManagerScript weaponSlotManager;           // 플레이어 무기 교체 관련 스크립트
+    public MotionTrail motionTrail;                             // 고속 이동 간 사용할 Motion Trail 스크립트
 
-    public CrossHairScript crossHair;                           // 플레이어 조준 간 화면에 표시되는 crossHair
 
     // 상태 변화 가능유무 2차배열
     private bool[,] CanChangeAction;
@@ -484,7 +485,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 conAction = 2;
 
                 // 조금 이동
-                attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f));
+                attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f, false));
 
                 break;
 
@@ -508,20 +509,18 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     // CrossHair 제거
                     crossHair.Destroy();
 
-                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(6f));
+                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(6f, true));
                 }
                 else
                 {
-                    // 달리던 중 공격은 앞으로 돌진
+                    // 달리던 중 공격은 조금더 앞으로 공격
                     if(IsRunning())
                     {
-                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(4f));
+                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(1.5f, false));
                     }
                     // 그 외 조금 이동
                     else
-                    {
-                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f));
-                    }
+                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f, false));
                 }
 
                 // 공격
@@ -588,7 +587,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 case Weapontype.None:
 
                     // 앞으로 조금 이동
-                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f));
+                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f, false));
 
                     // 공격
                     animator.SetTrigger("Punch");
@@ -629,7 +628,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     else
                     {
                         // 그 외엔 조금 이동
-                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f));
+                        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.5f, false));
 
                         // 공격
                         animator.SetTrigger("Swing");
@@ -872,22 +871,30 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         }
     }
 
-    IEnumerator AttackMovingCoroutine(float distance)
+    IEnumerator AttackMovingCoroutine(float distance, bool motionTrailOn)
     {
+        // Motion Trail On
+        if (motionTrailOn)
+            motionTrail.OnMotionTrail();
+
         isAttackMovingCoroutineRunning = true;
 
         float conTime = 0;
-        float maxTime = 1;
+        float maxTime = 0.1f;
 
         while(conTime < maxTime)
         {
             controller.Move(transform.forward * distance * 10 * Time.deltaTime);
 
-            conTime += Time.deltaTime * 10;
+            conTime += Time.deltaTime;
             yield return null;
         }
 
         isAttackMovingCoroutineRunning = false;
+
+        // Motion Trail Off
+        if (motionTrailOn)
+            motionTrail.OffMotionTrail();
     }
 
     IEnumerator ContinuousAttackJudgment()
@@ -1185,7 +1192,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             transform.localRotation = Quaternion.Euler(0, transform.localEulerAngles.y + 90, 0);
 
         // 구르기 모션 실행
-        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(3f));
+        attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(3f, false));
     }
 
     private void RollEnd()
