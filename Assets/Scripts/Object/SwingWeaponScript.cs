@@ -7,9 +7,10 @@ public class SwingWeaponScript : WeaponScript
     [Header("Swing Used")]
     public GameObject swingArea;
     private MeleeWeaponTrail meleeWeaponTrail;
-    private SwingWeaponCollider swingWeaponCollider;
 
-    [HideInInspector] public Vector3 attackVector;
+    public float hitAreaHorizontal;       // 공격 x축 범위
+    public float hitAreaVertical;         // 공격 z축 범위
+
 
     // Start is called before the first frame update
     override protected void Start()
@@ -17,58 +18,20 @@ public class SwingWeaponScript : WeaponScript
         base.Start();
 
         meleeWeaponTrail = swingArea.GetComponent<MeleeWeaponTrail>();
-
-        swingWeaponCollider = swingArea.GetComponent<SwingWeaponCollider>();
-        swingWeaponCollider.Init(this);
     }
 
-    public override void PreAttack()
+    public void TrailOn()
     {
         meleeWeaponTrail.Emit = true;
     }
 
-    public override void Attack(bool isFocusMode, Vector3 attackVector, float attackMagnitude)
-    {
-        if (conUsing > 0)
-        {
-            // 무기 사용량 감소
-            UsingWeapon();
-
-            // Hit 시 넉백 방향을 위해 공격 방향을 저장
-            this.attackVector = attackVector;
-
-            // 공격 판정 코루틴 실행
-            StartCoroutine(HitAreaOn());
-        }
-    }
-
-    public override void PostAttack()
+    public void TrailOff()
     {
         meleeWeaponTrail.Emit = false;
     }
 
-    public override void DestroyWeapon()
+    public void DestroyWeapon()
     {
         meleeWeaponTrail.ActiveFalseTrailObject();
-    }
-    
-    public override bool CanAttack()
-    {
-        return true;
-    }
-
-    private IEnumerator HitAreaOn()
-    {
-        swingWeaponCollider.attackCollider.enabled = true;
-
-        float conTime = 0;
-        float maxTime = 0.05f;
-        while(conTime < maxTime)
-        {
-            conTime += Time.deltaTime;
-            yield return null;
-        }
-
-        swingWeaponCollider.attackCollider.enabled = false;
     }
 }

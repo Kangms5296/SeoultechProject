@@ -74,9 +74,13 @@ public class ProjectileScript : MonoBehaviour
             monster.TakeDamage(damage, moveVector, 0.1f);
 
             // 타격 효과
-            SystemManager.Instance.HitEffect(false);
+            SystemManager.Instance.HitEffect(false, 1);
 
-            // 타격 이펙트
+            // 혈흔 파티클 생성
+            GameObject blood = ObjectPullManager.GetInstanceByName("Blood");
+            blood.transform.position = transform.position;
+            blood.transform.forward = -moveVector.normalized;
+            blood.SetActive(true);
 
             // 관통 여부에 따라 총알 삭제
             if (!isPenetrating)

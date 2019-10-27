@@ -33,13 +33,17 @@ public class WeaponSlotManagerScript : MonoBehaviour
 
     public void SetWeapon(WeaponScript newWeapon)
     {
-        Debug.Log(conIndex + "번 slot에 " + newWeapon.weaponName);
         weaponSlots[conIndex].SetWeapon(newWeapon);
     }
 
     public void ResetWeapon()
     {
         weaponSlots[conIndex].ResetWeapon();
+    }
+
+    public int GetIndex()
+    {
+        return conIndex;
     }
 
     public WeaponScript GetWeapon(int index)

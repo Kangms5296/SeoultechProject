@@ -5,8 +5,6 @@ public class ParticleEffectScript : MonoBehaviour
 {
     public bool OnlyDeactivate;
 
-    public ParticleSystemRenderer test;
-
     private void Start()
     {
     }

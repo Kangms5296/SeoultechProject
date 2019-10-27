@@ -23,18 +23,24 @@ public class SystemManager : MonoBehaviour
             return _instance;
         }
     }
-
-    // 공격 피격 연출
-    public float maxHitEffectTime;      // 최고 상태로 변하는 시간
+    
+    public float maxHitEffectTime;
     private float conHitEffectTime;
+
     public CinemachineVirtualCamera virtualCamera;
     private CinemachineBasicMultiChannelPerlin virtualCameraNoise;
+
     public PostProcessVolume postProcessVolume;
     private ChromaticAberration chromaticAberration;
-    public RadialBlurImageEffect radialBlurImageEffect;
-    private Coroutine hitEffectCoroutine;
-    private bool isHitEffectCoroutineOn = false;
 
+    public RadialBlurImageEffect radialBlurImageEffect;
+
+    private bool isHitEffectCoroutineOn = false;
+    private Coroutine hitEffectCoroutine;
+
+    private bool isCameraShakeCoroutineOn = false;
+    private Coroutine cameraShakeCoroutine;
+    private float conMagnitude = 0;
 
     private void Start()
     {
@@ -46,17 +52,28 @@ public class SystemManager : MonoBehaviour
     }
 
 
-    public void HitEffect(bool isSlowMode)
+    public void HitEffect(bool isSlowMode, float magnitude)
     {
         if (isHitEffectCoroutineOn)
             StopCoroutine(hitEffectCoroutine);
 
-        hitEffectCoroutine = StartCoroutine(HitEffectCoroutine(isSlowMode));
+        hitEffectCoroutine = StartCoroutine(HitEffectCoroutine(isSlowMode, magnitude));
     }
 
+    public void CameraShake(float time, float magnitude)
+    {
+        // 현재 흔들리는 정도가 흔들어아햐는 정도보다 쌔면 무시
+        if (conMagnitude > magnitude)
+            return;
 
+        // 
+        if (isCameraShakeCoroutineOn)
+            StopCoroutine(cameraShakeCoroutine);
 
-    private IEnumerator HitEffectCoroutine(bool isSlowMode)
+        cameraShakeCoroutine = StartCoroutine(CameraShakeCoroutine(time, magnitude));
+    }
+
+    private IEnumerator HitEffectCoroutine(bool isSlowMode, float magnitude)
     {
         isHitEffectCoroutineOn = true;
 
@@ -69,14 +86,14 @@ public class SystemManager : MonoBehaviour
         {
             value = conHitEffectTime / maxHitEffectTime;
 
-            chromaticAberration.intensity.value = value * 0.8f;
-            radialBlurImageEffect.blurSize = value * 1.5f;
+            chromaticAberration.intensity.value = value * 0.8f * magnitude;
+            radialBlurImageEffect.blurSize = value * 1.6f * magnitude;
 
             conHitEffectTime += Time.deltaTime;
             yield return null;
         }
-        chromaticAberration.intensity.value = 0.8f;
-        radialBlurImageEffect.blurSize = 1.5f;
+        chromaticAberration.intensity.value = 0.8f * magnitude;
+        radialBlurImageEffect.blurSize = 1.5f * magnitude;
         conHitEffectTime = maxHitEffectTime;
 
 
@@ -85,10 +102,8 @@ public class SystemManager : MonoBehaviour
         {
             value = conHitEffectTime / maxHitEffectTime;
 
-            //Time.timeScale = 0.1f + 0.9f * (1 - value);
-
-            chromaticAberration.intensity.value = value * 0.8f;
-            radialBlurImageEffect.blurSize = value * 1.5f;
+            chromaticAberration.intensity.value = value * 0.8f * magnitude;
+            radialBlurImageEffect.blurSize = value * 1.5f * magnitude;
 
             conHitEffectTime -= Time.deltaTime;
             yield return null;
@@ -101,6 +116,46 @@ public class SystemManager : MonoBehaviour
             Time.timeScale = 1f;
 
         isHitEffectCoroutineOn = false;
+    }
+
+    private IEnumerator CameraShakeCoroutine(float time, float magnitude)
+    {
+        isCameraShakeCoroutineOn = true;
+
+
+        float amplitude = 0.1f  * magnitude;
+        float frequency = 0.08f;
+
+
+        // 점점 카메라가 흔들어진다.
+        float conTime = 0;
+        while (conTime < time * 0.5f)
+        {
+            virtualCameraNoise.m_AmplitudeGain = amplitude * conTime * 2;
+            virtualCameraNoise.m_FrequencyGain = frequency * conTime * 2;
+
+            conTime += Time.deltaTime;
+            yield return null;
+        }
+        conTime = 0.5f;
+        virtualCameraNoise.m_AmplitudeGain = amplitude;
+        virtualCameraNoise.m_FrequencyGain = frequency;
+
+
+        // 점점 카메라가 멈춘다.
+        while (conTime > 0)
+        {
+            virtualCameraNoise.m_AmplitudeGain = amplitude * conTime * 2;
+            virtualCameraNoise.m_FrequencyGain = frequency * conTime * 2;
+
+            conTime -= Time.deltaTime;
+            yield return null;
+        }
+        virtualCameraNoise.m_AmplitudeGain = 0;
+        virtualCameraNoise.m_FrequencyGain = 0;
+
+
+        isCameraShakeCoroutineOn = false;
     }
 
 }

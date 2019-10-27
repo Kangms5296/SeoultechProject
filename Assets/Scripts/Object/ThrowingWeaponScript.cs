@@ -13,11 +13,8 @@ public class ThrowingWeaponScript : WeaponScript
         base.Start();
     }
 
-    public override void PreAttack()
-    {
-    }
 
-    public override void Attack(bool isFocusMode, Vector3 attackVector, float attackMagnitude)
+    public void Throw(Vector3 attackVector, float attackMagnitude)
     {
         if (conUsing > 0)
         {
@@ -25,19 +22,5 @@ public class ThrowingWeaponScript : WeaponScript
 
             UsingWeapon();
         }
-    }
-
-    public override void PostAttack()
-    {
-    }
-
-    public override void DestroyWeapon()
-    {
-
-    }
-
-    public override bool CanAttack()
-    {
-        return true;
     }
 }

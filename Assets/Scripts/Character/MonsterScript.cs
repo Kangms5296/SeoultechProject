@@ -20,7 +20,10 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
     private Coroutine movingCoroutine;
 
     // HP Bar
-    private MonsterHpBarScript hpBarScript; 
+    private MonsterHpBarScript hpBarScript;
+
+    // 플레이어의 근거리 공격 판정 유무
+    [HideInInspector] public bool isHitTarget = false;
 
     [Header("Character Info")]
     public int maxHp;                                     // 플레이어 최대 체력
@@ -42,7 +45,9 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
         hpBarScript = ObjectPullManager.GetInstanceByName("MonsterHp").GetComponent<MonsterHpBarScript>();
         hpBarScript.Init(transform);
     }
-    
+
+    // ------------------------------------------------------------------------------------------- public function -------------------------------------------------------------------------------------------
+
     public void TakeDamage(int damage, Vector3 knockBackDirection, float distance)
     {
         // 일시적으로 색 변화
@@ -61,7 +66,6 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
             // 피격 애니메이션 실행
             ChangeAnimation("Take Damage");
         }
-
     }
 
     // 체력 회복
@@ -124,6 +128,9 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
             anim.SetTrigger(animName);
     }
 
+    // ------------------------------------------------------------------------------------------- private function -------------------------------------------------------------------------------------------
+
+
     private IEnumerator MovingCoroutine(Vector3 moveDirection, float distance)
     {
         isMovingCoroutineOn = true;
@@ -166,6 +173,7 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
     {
         // 공격 판정 삭제
         coll.enabled = false;
+        isHitTarget = false;
 
         // 사망 애니메이션 처리
         anim.SetTrigger("Die");

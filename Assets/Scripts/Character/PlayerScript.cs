@@ -11,6 +11,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     [Header("Outside Object Caching")]
     public ParticleSystem dustParticle;                         // 먼지 Particle
     public CrossHairScript crossHair;                           // 플레이어 조준 간 화면에 표시되는 crossHair
+    public AttackHitAreaScript attackHitArea;                             // 근거리 공격을 할 때 사용하는 공격 범위 판정 Collider
 
     public Transform handlingWeaponParent;                      // 플레이어가 들고있는 무기의 부모
     public Transform backWeaponParent;                          // 플레이어가 등에 매고있는 무기의 부모
@@ -61,8 +62,11 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     private Vector3 newMove     = Vector3.zero;                 // 현재 프레임에서의 이동 벡터
     private Vector3 moveVector  = Vector3.zero;                 // 이전과 현재 프레임에서의 이동 벡터를 보간하여 얻은 최종 이동 벡터
 
-    private Weapontype conWeaponType = Weapontype.None;         // 현재 사용하는 무기의 종류
-    private WeaponScript conWeapon;                             // 현재 손에 쥐고있는 무기 정보
+    private Weapontype conWeaponType =  Weapontype.None;         // 현재 사용하는 무기의 종류
+    //private WeaponScript                conWeapon;              // 현재 손에 쥐고있는 무기 정보
+    private SwingWeaponScript           swingWeapon;
+    private ShootingWeaponScript        shootingWeapon;
+    private ThrowingWeaponScript        throwingWeapon;
     private int conWeaponIndex;                                 // 현재 사용하는 무기의 slot 정보
 
     private bool isFocusMode = false;                           // 현재 집중모드를 사용중인가?
@@ -340,9 +344,10 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         continuousShootingOn = false;
     }
 
+
     // ===================================================== private function ============================================================
 
-      
+
     private void Moving()
     {
         if (CanChangeAction[conAction, 0])
@@ -452,7 +457,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             switch (conWeaponType)
             {
                 case Weapontype.Shooting:
-                    rot = new Vector2(transform.position.x - temp.x, -(conWeapon.transform.position.z - temp.z + 0.6f));
+                    rot = new Vector2(transform.position.x - temp.x, -(shootingWeapon.transform.position.z - temp.z + 0.6f));
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
                     break;
 
@@ -489,6 +494,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 기존의 이동을 멈춘다.
                 StopMove();
 
+                // 공격 판정 범위 On
+                attackHitArea.CloseHitAreaOn(0.7f, 0.6f);
+
                 animator.SetTrigger("Punch");
                 conAction = 2;
 
@@ -503,8 +511,11 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 기존의 이동을 멈춘다.
                 StopMove();
 
-                // 공격 준비
-                conWeapon.PreAttack();
+                // 공격 판정 범위 On
+                attackHitArea.CloseHitAreaOn(swingWeapon.hitAreaHorizontal, swingWeapon.hitAreaVertical);
+
+                // Trail 효과를 On
+                swingWeapon.TrailOn();
 
                 // 집중 상태에서의 공격에서는 앞으로 돌진
                 if (isFocusMode)
@@ -539,9 +550,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 기존의 이동을 멈춘다.
                 StopMove();
 
-                // 공격 준비
-                conWeapon.PreAttack();
-
                 // 조준 중 공격
                 if (conAction == 7)
                 {
@@ -563,9 +571,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             case Weapontype.Throwing:
                 // 기존의 이동을 멈춘다.
                 StopMove();
-
-                // 공격 준비
-                conWeapon.PreAttack();
 
                 // 조준해서 던진경우
                 if(isFocusMode)
@@ -607,28 +612,30 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 case Weapontype.Swing:     
                     
                     // 무기 파괴 유무 검사
-                    if (conWeapon.conUsing <= 0)
+                    if (swingWeapon.conUsing <= 0)
                     {
                         // 파괴 이펙트 생성
                         GameObject temp = ObjectPullManager.GetInstanceByName("WeaponBreaking");
-                        temp.transform.position = conWeapon.transform.position + temp.transform.position;
+                        temp.transform.position = swingWeapon.transform.position + temp.transform.position;
                         temp.SetActive(true);
 
                         // 무기 파괴
-                        conWeapon.transform.SetParent(cantUseWeaponParent);
-                        conWeapon.transform.localPosition = Vector3.zero;
-                        conWeapon.gameObject.SetActive(false);
-                        conWeapon.DestroyWeapon();
+                        swingWeapon.transform.SetParent(cantUseWeaponParent);
+                        swingWeapon.transform.localPosition = Vector3.zero;
+                        swingWeapon.gameObject.SetActive(false);
+                        swingWeapon.DestroyWeapon();
+                        swingWeapon = null;
+
+                        // 현재 가지는 무기 정보 초기화
+                        conWeaponType = Weapontype.None;
 
                         // slot을 비운다.
                         weaponSlotManager.ResetWeapon();
 
-                        // 현재 가지는 무기 정보 초기화
-                        conWeaponType = Weapontype.None;
-                        conWeapon = null;
-
                         if (FinishAttackDelayCoroutine == null)
                             FinishAttackDelayCoroutine = StartCoroutine(AttackFinishCoroutine());
+
+                        attackHitArea.CloseHitAreaOff();
 
                         animator.SetTrigger("Move");
                         conAction = 0;
@@ -656,6 +663,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     if (FinishAttackDelayCoroutine != null)
                         FinishAttackDelayCoroutine = StartCoroutine(AttackFinishCoroutine());
 
+                    // 공격 판정 범위 Off
+                    attackHitArea.CloseHitAreaOff();
+
                     animator.SetTrigger("Move");
                     conAction = 0;
 
@@ -665,35 +675,40 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 몽둥이, 검 등의 무기
                 case Weapontype.Swing:
 
-                    if (conWeapon.conUsing <= 0)
+                    if (swingWeapon.conUsing <= 0)
                     {
                         // 파괴 이펙트 생성
                         GameObject temp = ObjectPullManager.GetInstanceByName("WeaponBreaking");
-                        temp.transform.position = conWeapon.transform.position + temp.transform.position;
+                        temp.transform.position = swingWeapon.transform.position + temp.transform.position;
                         temp.SetActive(true);
 
                         // 무기 파괴
-                        conWeapon.transform.SetParent(cantUseWeaponParent);
-                        conWeapon.transform.localPosition = Vector3.zero;
-                        conWeapon.gameObject.SetActive(false);
-                        conWeapon.DestroyWeapon();
+                        swingWeapon.transform.SetParent(cantUseWeaponParent);
+                        swingWeapon.transform.localPosition = Vector3.zero;
+                        swingWeapon.gameObject.SetActive(false);
+                        swingWeapon.DestroyWeapon();
+                        swingWeapon = null;
+
+                        // 현재 가지는 무기 정보 초기화
+                        conWeaponType = Weapontype.None;
 
                         // slot을 비운다.
                         weaponSlotManager.ResetWeapon();
 
-                        // 현재 가지는 무기 정보 초기화
-                        conWeaponType = Weapontype.None;
-                        conWeapon = null;
                     }
                     else
                     {
-                        // 후처리
-                        conWeapon.PostAttack();
+                        // Trail Off
+                        swingWeapon.TrailOff();
                     }
 
                     if (FinishAttackDelayCoroutine == null)
                         FinishAttackDelayCoroutine = StartCoroutine(AttackFinishCoroutine());
 
+                    // 공격 판정 범위 Off
+                    attackHitArea.CloseHitAreaOff();
+
+                    // 이동
                     animator.SetTrigger("Move");
                     conAction = 0;
 
@@ -701,8 +716,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
                 // 총 등의 무기
                 case Weapontype.Shooting:
-
-                    conWeapon.PostAttack();
+                    
+                    shootingWeapon.ContinuousAttackEnd();
 
                     animator.SetTrigger("Move");
                     conAction = 0;
@@ -712,11 +727,21 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         }
     }
 
-    private void SwingWeaponHitAreaOn()
+    private void PunchHitMonster()
     {
-        conWeapon.Attack(isFocusMode, transform.forward, 0);
+        // 공격 영역에 들어온 몬스터 데미지 처리
+        attackHitArea.CloseHit(true, 5, transform.forward, 0.2f);
     }
 
+    private void SwingWeaponHitMonster()
+    {
+        // 무기 남은 사용량 감소
+        swingWeapon.UsingWeapon();
+
+        // 공격 영역에 들어온 몬스터 데미지 처리
+        attackHitArea.CloseHit(false, swingWeapon.damage, transform.forward, 0.5f);
+    }
+    
     // 연속 공격의 마지막 공격 이후에는 약간의 딜레이
     private void AttackFinishEnd()
     {
@@ -744,7 +769,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     private void InstanceProjectile()
     {
         // 투사체를 생성하여 전방으로 공격
-        conWeapon.Attack(isFocusMode, transform.forward, 0);
+        shootingWeapon.InstanceProjectile(isFocusMode, transform.forward);
     }
 
     private void ShootingEnd()
@@ -753,13 +778,13 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (conAction == 8)
         {
             // 마우스를 계속 누르고 있으면 연속 공격
-            if(continuousShootingOn && conWeapon.CanAttack())
+            if(continuousShootingOn && shootingWeapon.CanAttack())
             {
                 animator.SetTrigger("Shooting");
             }
             else
             {
-                conWeapon.PostAttack();
+                shootingWeapon.ContinuousAttackEnd();
 
                 // 조준 상태로 돌아감
                 animator.SetTrigger("Aim");
@@ -945,6 +970,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     {
         Transform weapon;
 
+        WeaponScript conWeapon = GetWeaponScript();
+
         // 현재 무기를 가지고 있다면
         if (conWeaponType != Weapontype.None)
         {
@@ -955,13 +982,17 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
             // 무기를 최초 상태로 초기화
-            conWeapon.Throwweapon();
+            conWeapon.ResetOwner();
             conWeapon.ChangeToDrop();
         }
 
-        // 새로운 무기로 정보를 교체
+        // 플레이어가 가지는 무기 정보를 새로운 무기 정보로 변경
         conWeapon = DropObjectScript.dropObject;
-        conWeapon.UseWeapon(this);
+        conWeaponType = conWeapon.weaponType;
+        SetWeaponInfo(conWeapon);
+
+        // 무기의 상태 및 정보를 플레이어가 가지는 상태로 변경
+        conWeapon.SetOwner(this);
         conWeapon.ChangeToEquiped();
 
         // 새로운 무기를 손으로 이동
@@ -969,7 +1000,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         weapon.SetParent(handlingWeaponParent, true);
         weapon.localPosition = Vector3.zero;
         weapon.localRotation = Quaternion.Euler(0, 0, 0);
-        conWeaponType = conWeapon.weaponType;
 
         // 'Click F' Text를 화면에서 지운다.
         WorldSpaceCanvasUIs.SetActive("Click F", false);
@@ -995,6 +1025,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     private void DisarmWeapon()
     {
         Transform weapon;
+        
+        WeaponScript conWeapon = GetWeaponScript();
 
         // 현재 무기를 가지고 있다면
         if (conWeaponType != Weapontype.None)
@@ -1006,11 +1038,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             weapon.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
             // 무기를 최초 상태로 초기화
-            conWeapon.Throwweapon();
+            conWeapon.ResetOwner();
             conWeapon.ChangeToDrop();
 
             // 현재 무기 상태를 없음 으로 기록.
             conWeaponType = Weapontype.None;
+            SetWeaponInfo(null);
         }
     }
 
@@ -1083,7 +1116,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 가져오려는 slot에 물건이 없다면..
         if (newWeapon == null)
         {
-            conWeapon = null;
             conWeaponType = Weapontype.None;
         }
         else
@@ -1091,7 +1123,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // 무기를 배에서 얻는다면..
             if(newWeapon.weaponType == Weapontype.Throwing)
             {
-                conWeapon = null;
                 conWeaponType = Weapontype.None;
                 
                 if (weaponSlotManager.GetWeapon(conWeaponIndex).weaponType == Weapontype.Throwing)
@@ -1103,14 +1134,15 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             else
             {
                 // 무기를 손으로 이동
-                weapon = weaponSlotManager.GetWeapon(conWeaponIndex).transform;
+                weapon = newWeapon.transform;
                 weapon.SetParent(handlingWeaponParent);
                 weapon.localPosition = Vector3.zero;
                 weapon.localRotation = Quaternion.Euler(0, 0, 0);
                 weapon.GetComponent<WeaponScript>().ChangeToEquiped();
 
-                conWeapon = weapon.GetComponent<WeaponScript>();
-                conWeaponType = conWeapon.weaponType;
+                // 새로운 무기로 정보를 변경
+                conWeaponType = newWeapon.weaponType;
+                SetWeaponInfo(newWeapon);
             }
         }
     }
@@ -1136,7 +1168,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 가져오려는 slot에 물건이 없다면..
         if (newWeapon == null)
         {
-            conWeapon = null;
             conWeaponType = Weapontype.None;
         }
         else
@@ -1144,7 +1175,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // 무기를 등에서 얻는다면..
             if (newWeapon.weaponType == Weapontype.Swing || newWeapon.weaponType == Weapontype.Shooting)
             {
-                conWeapon = null;
                 conWeaponType = Weapontype.None;
 
                 // 등에서 무기를 얻는 애니메이션을 실행
@@ -1163,8 +1193,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 weapon.localRotation = Quaternion.Euler(0, 0, 0);
                 weapon.GetComponent<WeaponScript>().ChangeToEquiped();
 
-                conWeapon = weapon.GetComponent<WeaponScript>();
-                conWeaponType = conWeapon.weaponType;
+                // 새로운 무기로 정보를 변경
+                conWeaponType = newWeapon.weaponType;
+                SetWeaponInfo(newWeapon);
             }
         }
     }
@@ -1193,8 +1224,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             crossHair.Destroy();
         }
 
-        if(conWeapon != null)
-            conWeapon.PostAttack();
+        if(conWeaponType == Weapontype.Swing)
+            swingWeapon.TrailOff();
 
         // 구르기 시작 위치에 먼지 파티클 생성
         dustParticle.Play();
@@ -1240,7 +1271,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     private void Throwing()
     {
-        conWeapon.transform.SetParent(cantUseWeaponParent);
+        throwingWeapon.transform.SetParent(cantUseWeaponParent);
 
         // 집중상태에서는 클릭한 좌표로 던진다.
         if (isFocusMode)
@@ -1248,18 +1279,18 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             isFocusMode = false;
 
             float magnitude = Vector3.Distance(crossHair.CrossHairWorldPosition(), transform.position);
-            conWeapon.Attack(true, transform.forward, magnitude * 39.5f);
+            throwingWeapon.Throw(transform.forward, magnitude * 39.5f);
         }
         // 집중상태가 아닌 경우 적당한 힘으로 전방에 던진다.
         else
-            conWeapon.Attack(false, transform.forward, 200);
+            throwingWeapon.Throw(transform.forward, 200);
         
         // slot을 비운다.
         weaponSlotManager.ResetWeapon();
 
         // 현재 무기 정보 초기화
         conWeaponType = Weapontype.None;
-        conWeapon = null;
+        throwingWeapon = null;
     }
 
     private void ThrowingEnd()
@@ -1267,5 +1298,49 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 이동
         animator.SetTrigger("Move");
         conAction = 0;
+    }
+
+    private void SetWeaponInfo(WeaponScript weapon)
+    {
+        switch (conWeaponType)
+        {
+            case Weapontype.None:
+                swingWeapon = null;
+                shootingWeapon = null;
+                throwingWeapon = null;
+                break;
+            case Weapontype.Swing:
+                swingWeapon = (SwingWeaponScript)weapon;
+                shootingWeapon = null;
+                throwingWeapon = null;
+                break;
+            case Weapontype.Shooting:
+                swingWeapon = null;
+                shootingWeapon = (ShootingWeaponScript)weapon;
+                throwingWeapon = null;
+                break;
+            case Weapontype.Throwing:
+                swingWeapon = null;
+                shootingWeapon = null;
+                throwingWeapon = (ThrowingWeaponScript)weapon;
+                break;
+        }
+    }
+
+    private WeaponScript GetWeaponScript()
+    {
+        switch (conWeaponType)
+        {
+            case Weapontype.None:
+                return null;
+            case Weapontype.Swing:
+                return swingWeapon;
+            case Weapontype.Shooting:
+                return shootingWeapon;
+            case Weapontype.Throwing:
+                return throwingWeapon;
+            default:
+                return null;
+        }
     }
 }

@@ -5,6 +5,8 @@ public class ShootingWeaponScript : WeaponScript
     [Header("Shooting Used")]
     public Transform muzzle;                        // 총구 위치
     private ParticleSystem muzzleFlash;             // 총구 이펙트
+    public float shakeMagnitude;                    // 총기 반동
+
 
     public float distance;                          // 투사체 거리
     public string projectileName;                   // 투사체 종류
@@ -20,12 +22,7 @@ public class ShootingWeaponScript : WeaponScript
         muzzleFlash = muzzle.Find("Flash").GetComponent<ParticleSystem>();
     }
 
-    public override void PreAttack()
-    {
-
-    }
-
-    public override void Attack(bool isFocusMode, Vector3 attackVector, float attackMagnitude)
+    public void InstanceProjectile(bool isContinuous, Vector3 attackVector)
     {
         if (conUsing > 0)
         {
@@ -35,7 +32,7 @@ public class ShootingWeaponScript : WeaponScript
             // 발사
             if (temp != null)
             {
-                if (isFocusMode)
+                if (isContinuous)
                     conContinuousShootingCount++;
 
                 ProjectileScript projectile = temp.GetComponent<ProjectileScript>();
@@ -45,32 +42,24 @@ public class ShootingWeaponScript : WeaponScript
             // 총구 이펙트
             muzzleFlash.Emit(1);
             
+            // 총구 반동으로 인한 화면 덜림
+            SystemManager.Instance.CameraShake(0.05f, shakeMagnitude);
+            
             // UI 남은 사용 횟수 수정
             UsingWeapon();
         }
     }
 
-    public override void PostAttack()
+    public void ContinuousAttackEnd()
     {
         conContinuousShootingCount = 0;
     }
 
-    // 최대 연속 사격 횟수로 무기 사용 가능을 체크한다.
-    // 이를 통해 단발 사격과 점사 모드를 가능하게 할 수 있다.
-    public override bool CanAttack()
+    public bool CanAttack()
     {
         if (conContinuousShootingCount >= maxContinuousShootingCount)
             return false;
 
         return true;
     }
-
-    // Shooting 무기는 무기가 파괴되지 않는다.
-    // 총알이 다 떨어지면 사용 모션만을 취한다.
-    public override void DestroyWeapon()
-    {
-
-    }
-
-
 }
