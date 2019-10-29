@@ -14,8 +14,8 @@ public class WeaponCrateScript : BeatableObjectScript
     public Transform cover;
     public Transform body;
 
-    public int minItemCount;                                // 최소 생성 아이템 수
-    public int maxItemCount;                                // 최대 생성 아이템 수
+    [Range(0, 6)] public int minItemCount;                  // 최소 생성 아이템 수
+    [Range(0, 6)] public int maxItemCount;                  // 최대 생성 아이템 수
     private Transform dropedWeaponParent;                   // 생성한 아이템이 들어갈 Parent Transform
 
     public WeaponCrateInstantiateObject[] weaponList;       // Crate에서 나올 아이템 종류
@@ -52,10 +52,10 @@ public class WeaponCrateScript : BeatableObjectScript
         coverRotateCoroutine = StartCoroutine(CoverRatotateCoroutine(-15f, 1f));
 
         int createWeaponVelue = Random.Range(minItemCount, maxItemCount + 1);
+        int[] randomSeed = MathManager.Instance.Combination(0, createWeaponVelue);
         for (int i = 0; i < createWeaponVelue; i++)
         {
-            int temp = Random.Range(0, 360);
-            int angle = temp - temp % 60;
+            int angle = randomSeed[i] * 60;
             StartCoroutine(WeaponDropCoroutine(angle, 1.2f, 1.5f));
         }
 
