@@ -8,9 +8,7 @@ public class ProjectileScript : MonoBehaviour
     public float speed;                 // 투사체가 날아가는 속도
     
     public BoxCollider boxCollider;     // 충돌 판정 콜라이더
-
-    private Coroutine MovingCoroutine;  // 이동 제어 코루틴
-
+    
     private bool isPenetrating;         // 관통 여부
     private Vector3 moveVector;         // 이동 방향
     private float distance;             // 이동 거리
@@ -29,7 +27,7 @@ public class ProjectileScript : MonoBehaviour
         
         gameObject.SetActive(true);
 
-        MovingCoroutine = StartCoroutine(Moving());
+        StartCoroutine(Moving());
     }
 
 
@@ -74,7 +72,7 @@ public class ProjectileScript : MonoBehaviour
             monster.TakeDamage(damage, moveVector, 0.1f);
 
             // 타격 효과
-            SystemManager.Instance.HitEffect(false, 1);
+            SystemManager.Instance.HitEffect(0.07f, 0.5f);
 
             // 혈흔 파티클 생성
             GameObject blood = ObjectPullManager.GetInstanceByName("Blood");
@@ -85,6 +83,22 @@ public class ProjectileScript : MonoBehaviour
             // 관통 여부에 따라 총알 삭제
             if (!isPenetrating)
                 gameObject.SetActive(false);
+        }
+        else if (other.CompareTag("Beatable Object"))
+        {
+            BeatableObjectScript temp = other.GetComponent<BeatableObjectScript>();
+
+            if(temp.canHit)
+            {
+                temp.Hit();
+
+                // 타격 효과
+                SystemManager.Instance.HitEffect(0.07f, 0.5f);
+
+                // 관통 여부에 따라 총알 삭제
+                if (!isPenetrating)
+                    gameObject.SetActive(false);
+            }
         }
     }
 }

@@ -43,7 +43,7 @@ public class ShootingWeaponScript : WeaponScript
             muzzleFlash.Emit(1);
             
             // 총구 반동으로 인한 화면 덜림
-            SystemManager.Instance.CameraShake(0.05f, shakeMagnitude);
+            SystemManager.Instance.CameraShake("Shooting", 0.05f, 0.1f * shakeMagnitude, 0.08f * shakeMagnitude);
             
             // UI 남은 사용 횟수 수정
             UsingWeapon();

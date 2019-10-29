@@ -24,23 +24,35 @@ public class SystemManager : MonoBehaviour
         }
     }
     
-    public float maxHitEffectTime;
-    private float conHitEffectTime;
 
     public CinemachineVirtualCamera virtualCamera;
     private CinemachineBasicMultiChannelPerlin virtualCameraNoise;
-
     public PostProcessVolume postProcessVolume;
     private ChromaticAberration chromaticAberration;
-
     public RadialBlurImageEffect radialBlurImageEffect;
 
-    private bool isHitEffectCoroutineOn = false;
+    // Hit Effect Use
+    private bool isHitEffectCoroutineOn;
     private Coroutine hitEffectCoroutine;
+    private float conHitEffectTime;
 
-    private bool isCameraShakeCoroutineOn = false;
+    // Camera Shake Use
+    [System.Serializable]
+    public class ShakeNoiseInfo
+    {
+        public string type;
+        public NoiseSettings noise;
+    }
+    public ShakeNoiseInfo[] shakeNoiseInfos;
+    private bool isCameraShakeCoroutineOn;
     private Coroutine cameraShakeCoroutine;
-    private float conMagnitude = 0;
+    private float conAmplitude;
+
+    // Slow Mode Use
+    private bool isSlowModeCoroutineOn;
+    private Coroutine slowModeCoroutine;
+    [HideInInspector] public float speedAffectedBySlowMode;
+    [HideInInspector] public float speedUnaffectedBySlowMode;
 
     private void Start()
     {
@@ -49,83 +61,94 @@ public class SystemManager : MonoBehaviour
 
         if (postProcessVolume != null)
             chromaticAberration = postProcessVolume.profile.GetSetting<ChromaticAberration>();
+
+        speedAffectedBySlowMode = 1;
+        speedUnaffectedBySlowMode = 1;
     }
 
 
-    public void HitEffect(bool isSlowMode, float magnitude)
+    public void HitEffect(float time, float magnitude)
     {
         if (isHitEffectCoroutineOn)
             StopCoroutine(hitEffectCoroutine);
 
-        hitEffectCoroutine = StartCoroutine(HitEffectCoroutine(isSlowMode, magnitude));
+        hitEffectCoroutine = StartCoroutine(HitEffectCoroutine(time, magnitude));
     }
 
-    public void CameraShake(float time, float magnitude)
+    public void CameraShake(string type, float time, float amplitude, float frequency)
     {
-        // 현재 흔들리는 정도가 흔들어아햐는 정도보다 쌔면 무시
-        if (conMagnitude > magnitude)
+        if (conAmplitude > amplitude)
             return;
 
-        // 
         if (isCameraShakeCoroutineOn)
             StopCoroutine(cameraShakeCoroutine);
 
-        cameraShakeCoroutine = StartCoroutine(CameraShakeCoroutine(time, magnitude));
+        cameraShakeCoroutine = StartCoroutine(CameraShakeCoroutine(type, time, amplitude, frequency));
     }
 
-    private IEnumerator HitEffectCoroutine(bool isSlowMode, float magnitude)
+    public void SlowMode(float time, float speed)
+    {
+        if (speedAffectedBySlowMode < speed)
+            return;
+
+        if (isSlowModeCoroutineOn)
+            StopCoroutine(slowModeCoroutine);
+
+        slowModeCoroutine = StartCoroutine(SlowModeCoroutine(time, speed));
+    }
+
+    private IEnumerator HitEffectCoroutine(float time, float magnitude)
     {
         isHitEffectCoroutineOn = true;
 
         float value;
 
-        if (isSlowMode)
-            Time.timeScale = 0.25f;
-
-        while (conHitEffectTime < maxHitEffectTime)
+        while (conHitEffectTime < time)
         {
-            value = conHitEffectTime / maxHitEffectTime;
+            value = conHitEffectTime / time;
 
-            chromaticAberration.intensity.value = value * 0.8f * magnitude;
+            chromaticAberration.intensity.value = value * 1 * magnitude;
             radialBlurImageEffect.blurSize = value * 1.6f * magnitude;
 
-            conHitEffectTime += Time.deltaTime;
+            conHitEffectTime += Time.deltaTime * speedUnaffectedBySlowMode;
             yield return null;
         }
-        chromaticAberration.intensity.value = 0.8f * magnitude;
+        chromaticAberration.intensity.value = 1 * magnitude;
         radialBlurImageEffect.blurSize = 1.5f * magnitude;
-        conHitEffectTime = maxHitEffectTime;
+        conHitEffectTime = time;
 
 
 
         while (conHitEffectTime > 0)
         {
-            value = conHitEffectTime / maxHitEffectTime;
+            value = conHitEffectTime / time;
 
-            chromaticAberration.intensity.value = value * 0.8f * magnitude;
+            chromaticAberration.intensity.value = value * 1 * magnitude;
             radialBlurImageEffect.blurSize = value * 1.5f * magnitude;
 
-            conHitEffectTime -= Time.deltaTime;
+            conHitEffectTime -= Time.deltaTime * speedUnaffectedBySlowMode;
             yield return null;
         }
         chromaticAberration.intensity.value = 0;
         radialBlurImageEffect.blurSize = 0;
         conHitEffectTime = 0;
 
-        if (isSlowMode)
-            Time.timeScale = 1f;
-
         isHitEffectCoroutineOn = false;
     }
 
-    private IEnumerator CameraShakeCoroutine(float time, float magnitude)
+    private IEnumerator CameraShakeCoroutine(string type, float time, float amplitude, float frequency)
     {
         isCameraShakeCoroutineOn = true;
 
-
-        float amplitude = 0.1f  * magnitude;
-        float frequency = 0.08f;
-
+        foreach(ShakeNoiseInfo shakeNoiseInfo in shakeNoiseInfos)
+        {
+            if(shakeNoiseInfo.type.Equals(type))
+            {
+                virtualCameraNoise.m_NoiseProfile = shakeNoiseInfo.noise;
+                break;
+            }
+        }
+        conAmplitude = amplitude;
 
         // 점점 카메라가 흔들어진다.
         float conTime = 0;
@@ -134,7 +157,7 @@ public class SystemManager : MonoBehaviour
             virtualCameraNoise.m_AmplitudeGain = amplitude * conTime * 2;
             virtualCameraNoise.m_FrequencyGain = frequency * conTime * 2;
 
-            conTime += Time.deltaTime;
+            conTime += Time.deltaTime * speedUnaffectedBySlowMode;
             yield return null;
         }
         conTime = 0.5f;
@@ -148,14 +171,36 @@ public class SystemManager : MonoBehaviour
             virtualCameraNoise.m_AmplitudeGain = amplitude * conTime * 2;
             virtualCameraNoise.m_FrequencyGain = frequency * conTime * 2;
 
-            conTime -= Time.deltaTime;
+            conTime -= Time.deltaTime * speedUnaffectedBySlowMode;
             yield return null;
         }
         virtualCameraNoise.m_AmplitudeGain = 0;
         virtualCameraNoise.m_FrequencyGain = 0;
-
+        conAmplitude = 0;
 
         isCameraShakeCoroutineOn = false;
+    }
+
+    private IEnumerator SlowModeCoroutine(float time, float speed)
+    {
+        isSlowModeCoroutineOn = true;
+
+        Time.timeScale = speed;
+        speedAffectedBySlowMode = speed;
+        speedUnaffectedBySlowMode = 1 / speed;
+
+        float conTime = 0;
+        while(conTime < time)
+        {
+            conTime += Time.deltaTime * speedUnaffectedBySlowMode;
+            yield return null;
+        }
+
+        Time.timeScale = 1;
+        speedAffectedBySlowMode = 1;
+        speedUnaffectedBySlowMode = 1;
+
+        isSlowModeCoroutineOn = false;
     }
 
 }

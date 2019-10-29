@@ -495,7 +495,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 StopMove();
 
                 // 공격 판정 범위 On
-                attackHitArea.CloseHitAreaOn(0.7f, 0.6f);
+                attackHitArea.CloseHitAreaOn(0.8f, 1f);
 
                 animator.SetTrigger("Punch");
                 conAction = 2;
@@ -730,7 +730,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     private void PunchHitMonster()
     {
         // 공격 영역에 들어온 몬스터 데미지 처리
-        attackHitArea.CloseHit(true, 5, transform.forward, 0.2f);
+        attackHitArea.CloseHit(true, 5, transform.forward, 0.5f);
     }
 
     private void SwingWeaponHitMonster()
@@ -739,7 +739,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         swingWeapon.UsingWeapon();
 
         // 공격 영역에 들어온 몬스터 데미지 처리
-        attackHitArea.CloseHit(false, swingWeapon.damage, transform.forward, 0.5f);
+        attackHitArea.CloseHit(false, swingWeapon.damage, transform.forward, 0.8f);
     }
     
     // 연속 공격의 마지막 공격 이후에는 약간의 딜레이
@@ -867,7 +867,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     private bool IsRunning()
     {
-        if (moveMaginitude == runMaxSpeed)
+        if (moveMaginitude > runMaxSpeed * 0.7f + walkMaxSpeed * 0.3f)
             return true;
         else
             return false;

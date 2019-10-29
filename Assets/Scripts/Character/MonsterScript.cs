@@ -22,10 +22,8 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
     // HP Bar
     private MonsterHpBarScript hpBarScript;
 
-    // 플레이어의 근거리 공격 판정 유무
-    [HideInInspector] public bool isHitTarget = false;
-
     [Header("Character Info")]
+    public bool isDie;                                    // 사망 여부
     public int maxHp;                                     // 플레이어 최대 체력
     public int conHp;                                     // 플레이어 현재 체력
 
@@ -173,8 +171,9 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
     {
         // 공격 판정 삭제
         coll.enabled = false;
-        isHitTarget = false;
-
+        
+        // 사망 처리
+        isDie = true;
         // 사망 애니메이션 처리
         anim.SetTrigger("Die");
 

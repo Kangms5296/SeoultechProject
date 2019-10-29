@@ -36,7 +36,7 @@ public class ThrowObejctScript : MonoBehaviour
     {
         // 폭발 파티클 생성
         GameObject temp = ObjectPullManager.GetInstanceByName(particleName);
-        temp.transform.position = transform.position + temp.transform.position;
+        temp.transform.position = transform.position;
         temp.SetActive(true);
 
         // 오브젝트 삭제
@@ -51,10 +51,8 @@ public class ThrowObejctScript : MonoBehaviour
         {
             // 즉시 폭발하는 오브젝트는
             if (type == ExplotionType.Instant)
-            {
                 // 폭발
                 Boom();
-            }
         }
     }
 

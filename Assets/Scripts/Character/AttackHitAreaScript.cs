@@ -3,7 +3,11 @@ using UnityEngine;
 
 public class AttackHitAreaScript : MonoBehaviour
 {
-    public List<MonsterScript> inHitAreaMonster = new List<MonsterScript>();
+    // 공격 범위 내 Monster 정보
+    private List<MonsterScript> inHitAreaMonster = new List<MonsterScript>();
+
+    // 공격 범위 내 Crate 정보
+    private List<BeatableObjectScript> inHitAreaObject = new List<BeatableObjectScript>();
 
     public void CloseHitAreaOn(float horizontal, float vertical)
     {
@@ -14,45 +18,81 @@ public class AttackHitAreaScript : MonoBehaviour
     public void CloseHitAreaOff()
     {
         // 공격 범위 몬스터 정보를 초기화
-        foreach(MonsterScript monster in inHitAreaMonster)
-            monster.isHitTarget = false;
         inHitAreaMonster = new List<MonsterScript>();
+        inHitAreaObject = new List<BeatableObjectScript>();
 
         gameObject.SetActive(false);
     }
 
     public void CloseHit(bool isPunch, int damage, Vector3 knockBackDirection, float knockBackMagnitude)
     {
+        // 공격 범위의 모든 Monster들을 공격
         foreach (MonsterScript monster in inHitAreaMonster)
-            if (monster.isHitTarget)
+        {
+            // 사망한 몬스터는 공격x
+            if (monster.isDie)
+                continue;
+
+            // 데미지 처리
+            monster.TakeDamage(damage, knockBackDirection, knockBackMagnitude);
+
+            if (isPunch)
             {
-                // 데미지 처리
-                monster.TakeDamage(damage, knockBackDirection, knockBackMagnitude);
+                // 타격 효과
+                SystemManager.Instance.HitEffect(0.05f, 0.5f);
+
+                // 타격 이펙트
+                GameObject effect = ObjectPullManager.GetInstanceByName("PunchHit");
+                Vector3 effectPos = monster.transform.position + new Vector3(Random.Range(-0.3f, 0.3f), 0, Random.Range(0, 0.2f));
+                effect.transform.position = effectPos;
+                effect.SetActive(true);
+            }
+            else
+            {
+                // 타격 효과
+                SystemManager.Instance.HitEffect(0.1f, 0.8f);
+                SystemManager.Instance.SlowMode(0.1f, 0.2f);
+
+                // 타격 이펙트
+                GameObject effect = ObjectPullManager.GetInstanceByName("Hit");
+                Vector3 effectPos = monster.transform.position + new Vector3(Random.Range(-0.5f, 0.5f), 0, Random.Range(-0.5f, 0.5f));
+                effect.transform.position = effectPos;
+                effect.SetActive(true);
+            }
+        }
+
+        // 공격 범위의 모든 공격 가능 물건들을 공격
+        foreach(BeatableObjectScript temp in inHitAreaObject)
+        {
+            if (temp.canHit)
+            {
+                temp.Hit();
 
                 if (isPunch)
                 {
                     // 타격 효과
-                    SystemManager.Instance.HitEffect(false, 0.5f);
+                    SystemManager.Instance.HitEffect(0.05f, 0.3f);
 
                     // 타격 이펙트
                     GameObject effect = ObjectPullManager.GetInstanceByName("PunchHit");
-                    Vector3 effectPos = monster.transform.position + new Vector3(Random.Range(-0.3f, 0.3f), 0, Random.Range(-0.3f, 0.3f));
+                    Vector3 effectPos = transform.position + knockBackDirection * 0.5f;
                     effect.transform.position = effectPos;
                     effect.SetActive(true);
                 }
                 else
                 {
                     // 타격 효과
-                    SystemManager.Instance.HitEffect(true, 1);
+                    SystemManager.Instance.HitEffect(0.1f, 0.8f);
+                    SystemManager.Instance.SlowMode(0.1f, 0.2f);
 
                     // 타격 이펙트
                     GameObject effect = ObjectPullManager.GetInstanceByName("Hit");
-                    Vector3 effectPos = monster.transform.position + new Vector3(Random.Range(-0.5f, 0.5f), 0, Random.Range(-0.5f, 0.5f));
+                    Vector3 effectPos = transform.position + knockBackDirection * 0.8f;
                     effect.transform.position = effectPos;
                     effect.SetActive(true);
                 }
-
             }
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -62,11 +102,20 @@ public class AttackHitAreaScript : MonoBehaviour
             MonsterScript monster = other.GetComponent<MonsterScript>();
 
             // 기존에 영역에 들어있는 몬스터가 다시 처리되면 무시
-            if (monster.isHitTarget)
+            if (inHitAreaMonster.Contains(monster))
                 return;
-            monster.isHitTarget = true;
 
             inHitAreaMonster.Add(monster);
+        }
+        else if (other.CompareTag("Beatable Object"))
+        {
+            BeatableObjectScript temp = other.GetComponent<BeatableObjectScript>();
+
+            // 기존에 공격 영역에 들어있는 물건이 다시 처리되면 무시
+            if (inHitAreaObject.Contains(temp))
+                return;
+
+            inHitAreaObject.Add(temp);
         }
     }
 
@@ -76,7 +125,21 @@ public class AttackHitAreaScript : MonoBehaviour
         {
             MonsterScript monster = other.GetComponent<MonsterScript>();
 
-            monster.isHitTarget = false;
+            // 기존에 영역에 들어있는 몬스터가 다시 처리되면 무시
+            if (!inHitAreaMonster.Contains(monster))
+                return;
+
+            inHitAreaMonster.Remove(monster);
+        }
+        else if (other.CompareTag("Beatable Object"))
+        {
+            BeatableObjectScript temp = other.GetComponent<BeatableObjectScript>();
+
+            // 기존에 공격 영역에 들어있는 물건이 다시 처리되면 무시
+            if (!inHitAreaObject.Contains(temp))
+                return;
+
+            inHitAreaObject.Remove(temp);
         }
     }
 }
