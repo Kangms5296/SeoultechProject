@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class MonsterScript : MonoBehaviour, ICharacterScript
 {
@@ -8,24 +9,44 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
     private BoxCollider coll;
     private Animator anim;
     private SkinnedMeshRenderer meshRenderer;
+    private NavMeshAgent agent;
+
+    // Player Info
+    [HideInInspector] public bool isPlayerInAttackDetectArea;
+    [HideInInspector] public bool isPlayerInAttackArea;
+    private PlayerScript playerScript;
+    private Transform playerTrans;
 
     // Change Material Color
-    private bool isChangingMaterialColor = false;
+    private bool isChangingMaterialColorCoroutineOn;
     private Coroutine changeMaterialColorCoroutine;
     private Color normalMaterialColor;
     private Color hitMaterialColor;
 
     // KnockBack
-    private bool isMovingCoroutineOn = false;
+    private bool isMovingCoroutineOn;
     private Coroutine movingCoroutine;
 
     // HP Bar
     private MonsterHpBarScript hpBarScript;
 
-    [Header("Character Info")]
-    public bool isDie;                                    // 사망 여부
-    public int maxHp;                                     // 플레이어 최대 체력
-    public int conHp;                                     // 플레이어 현재 체력
+    // FSM
+    public enum State{ Trace, Attack };
+    private State state;
+    private Coroutine fsmCoroutine;
+
+    private Vector3 targetPos;
+
+
+    [Header("Monster Info")]
+    public int damage;                                      // 캐릭터 데미지
+    public int maxHp;                                       // 캐릭터 최대 체력
+    public int conHp;                                       // 캐릭터 현재 체력
+    [HideInInspector] public bool isDie;                    // 캐릭터 사망 여부
+    public bool isShortDistanceAttack;                      // 캐릭터 근거리 공격 여부
+
+    [Header("Short Distance Attack")]
+    public MonsterAttackAreaScript attackAreaScript;
 
     // Start is called before the first frame update
     void Start()
@@ -34,14 +55,19 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
         coll = GetComponent<BoxCollider>();
         anim = GetComponent<Animator>();
         meshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+        agent = GetComponent<NavMeshAgent>();
+
+        playerScript = FindObjectOfType<PlayerScript>();
+        playerTrans = playerScript.transform;
 
         normalMaterialColor = new Color(0, 0, 0);
         hitMaterialColor = new Color(0.4f, 0, 0);
         
         conHp = maxHp;
-
         hpBarScript = ObjectPullManager.GetInstanceByName("MonsterHp").GetComponent<MonsterHpBarScript>();
         hpBarScript.Init(transform);
+
+        StartCoroutine(FSM());
     }
 
     // ------------------------------------------------------------------------------------------- public function -------------------------------------------------------------------------------------------
@@ -90,9 +116,10 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
 
     public void Die()
     {
+        StopCoroutine(fsmCoroutine);
+
         StartCoroutine(DieCoroutine());
     }
-
     
     public void KnockBack(Vector3 knockBackDirection, float distance)
     {
@@ -108,7 +135,7 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
 
     public void ChangeMaterialColor(Color color, float maxTime)
     {
-        if (isChangingMaterialColor)
+        if (isChangingMaterialColorCoroutineOn)
             StopCoroutine(changeMaterialColorCoroutine);
         changeMaterialColorCoroutine = StartCoroutine(ChangeMaterialColorCoroutine(color, maxTime));
     }
@@ -126,8 +153,24 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
             anim.SetTrigger(animName);
     }
 
+    public void StartFSM()
+    {
+        fsmCoroutine = StartCoroutine(FSM());
+    }
+
     // ------------------------------------------------------------------------------------------- private function -------------------------------------------------------------------------------------------
 
+    private IEnumerator FSM()
+    {
+        // 플레이어를 추적하면서 시작
+        state = State.Trace;
+
+        while (!isDie)
+        {
+            fsmCoroutine = StartCoroutine(state.ToString() + "Coroutine");
+            yield return fsmCoroutine;
+        }
+    }
 
     private IEnumerator MovingCoroutine(Vector3 moveDirection, float distance)
     {
@@ -149,7 +192,7 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
 
     private IEnumerator ChangeMaterialColorCoroutine(Color color, float maxTime)
     {
-        isChangingMaterialColor = true;
+        isChangingMaterialColorCoroutineOn = true;
 
         // 피격 직후 하얗게
         meshRenderer.material.SetColor("_EmissionColor", hitMaterialColor);
@@ -163,7 +206,7 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
         // 다시 원래대로
         meshRenderer.material.SetColor("_EmissionColor", normalMaterialColor);
 
-        isChangingMaterialColor = true;
+        isChangingMaterialColorCoroutineOn = true;
 
     }
 
@@ -202,5 +245,93 @@ public class MonsterScript : MonoBehaviour, ICharacterScript
 
         // 캐릭터 삭제
         gameObject.SetActive(false);
+    }
+
+    private IEnumerator TraceCoroutine()
+    {
+        anim.SetBool("Walk Forward", true);
+        agent.isStopped = false;
+   
+        // 공격 범위 내 플레이어가 있을때까지 추적
+        while (!isPlayerInAttackDetectArea)
+        {
+            agent.SetDestination(playerTrans.position);
+            yield return null;
+        }
+        targetPos = playerTrans.position;
+
+        // 정지
+        anim.SetBool("Walk Forward", true);
+        agent.isStopped = true;
+
+        // 현재 위치에서 플레이어를 바라볼 때까지 회전
+        Vector3 startForward = transform.forward;
+        Vector3 vectorToTarget = (targetPos - transform.position).normalized;
+        float conTime = 0;
+        float maxTime = 1f;
+        while(conTime < maxTime)
+        {
+            transform.forward = Vector3.Lerp(startForward, vectorToTarget, conTime);
+            conTime += Time.deltaTime * 3;
+            yield return null;
+        }
+        
+
+        anim.SetBool("Walk Forward", false);
+
+        // 다음 행동을 공격으로 변환
+        state = State.Attack;
+    }
+
+    private IEnumerator AttackCoroutine()
+    {
+        // 공격 시작 모션
+        anim.SetTrigger("Cast Spell");
+
+        // 공격 시작 모션이 끝날수 있도록 일정시간 대기
+        float conTime = 0;
+        float maxTime = 1.5f;
+        while (conTime < maxTime)
+        {
+            conTime += Time.deltaTime;
+            yield return null;
+        }
+
+        // 근거리 공격 처리
+        if (isShortDistanceAttack)
+        {
+            // 공격 모션 실행
+            anim.SetTrigger("Stab Attack");
+            
+            // 공격 간 전방이동 벡터 계산
+            Vector3 movePos = transform.position + transform.forward;
+            
+            // 2초간 전방이동
+            conTime = 0;
+            maxTime = anim.GetCurrentAnimatorStateInfo(0).length;
+            Debug.Log(maxTime);
+            while (conTime < maxTime)
+            {
+                transform.position = Vector3.Lerp(transform.position, movePos, conTime / maxTime);
+
+                conTime += Time.deltaTime;
+                yield return null;
+            }
+            transform.position = movePos;
+        }
+
+        state = State.Trace;
+    }
+
+    private void AttackAreaOn()
+    {
+        // 공격 처리 On
+        attackAreaScript.AttackAreaOn();
+    }
+
+    private void AttackAreaOff()
+    {
+        // 공격 처리 Off
+        attackAreaScript.AttackAreaOff();
     }
 }

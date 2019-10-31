@@ -11,17 +11,20 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     [Header("Outside Object Caching")]
     public ParticleSystem dustParticle;                         // 먼지 Particle
     public CrossHairScript crossHair;                           // 플레이어 조준 간 화면에 표시되는 crossHair
-    public AttackHitAreaScript attackHitArea;                             // 근거리 공격을 할 때 사용하는 공격 범위 판정 Collider
+    public AttackHitAreaScript attackHitArea;                   // 근거리 공격을 할 때 사용하는 공격 범위 판정 Collider
 
+    [Header("Weapon Parent Set")]
     public Transform handlingWeaponParent;                      // 플레이어가 들고있는 무기의 부모
     public Transform backWeaponParent;                          // 플레이어가 등에 매고있는 무기의 부모
     public Transform bellyWeaponParent;                         // 플레이어가 배에 걸고있는 무기의 부모
     public Transform droppedWeaponParent;                       // 필드에 드랍되는 무기들의 부모
     public Transform cantUseWeaponParent;                       // 파괴된 무기들의 부모
 
+    [Header("Using Script Caching")]
     public PlayerSkillScript skillManager;                      // 플레이어 스킬 관련 스크립트
     public WeaponSlotManagerScript weaponSlotManager;           // 플레이어 무기 교체 관련 스크립트
     public MotionTrail motionTrail;                             // 고속 이동 간 사용할 Motion Trail 스크립트
+    public PlayerHpBarScript hpBarScript;                       // 플레이어 Hp UI 관련 스크립트
 
 
     // 상태 변화 가능유무 2차배열
@@ -93,9 +96,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             {   true ,       false,       false,     true ,      false,      false,              false,      false,      false,}, // 5    Weapon Change
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 6    Roll
             {   false,       false,       true ,     false,      false,      false,              true ,      true ,      true ,}, // 7    Focue Mode
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 8    Shooting In Focue Mode
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 8    Can't  Everything
+
         };
-        
+
+        conHp = maxHp;
+
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
 
@@ -309,6 +315,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (conHp > maxHp)
             conHp = maxHp;
 
+        // HP Ui를 갱신
+        hpBarScript.RecoveryHp(conHp, maxHp);
+
         return conHp;
     }
 
@@ -318,24 +327,46 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (conHp < 0)
             conHp = 0;
 
+        // HP Ui를 갱신
+        hpBarScript.DecreaseHp(conHp, maxHp);
+
         return conHp;
+    }
+
+    public void TakeDamage(int damage, Vector3 knockBackDirection, float distance)
+    {
+        // 데미지 처리
+        if (DecreaseHp(damage) == 0)
+            // 체력 0 이하는 사망 처리
+            Die();
+        // 체력 0이 아닌 경우
+        else
+        {
+            // 이동 멈춤
+            StopMove();
+
+            // 피격 이펙트
+            SystemManager.Instance.HitEffect(0.1f, 1.2f);
+            SystemManager.Instance.CameraShake("Explosion", 0.1f, 50, 5);
+            SystemManager.Instance.ChangeColorGrading(((float)conHp / maxHp) * 100);
+
+            // 공격 방향으로의 넉백
+            StartCoroutine(KnockBackCoroutine(knockBackDirection, distance));
+
+            animator.SetTrigger("Damaged");
+            conAction = 8;
+        }
     }
 
     public void Die()
     {
+        // 이동 멈춤
+        StopMove();
 
-    }
-
-    public void StopAttackMovingCoroutine()
-    {
-        if (isAttackMovingCoroutineRunning)
-        {
-            isAttackMovingCoroutineRunning = false;
-
-            StopCoroutine(attackMovingCoroutine);
-
-            Debug.Log("Player Move Stop");
-        }
+        // 피격 이펙트
+        SystemManager.Instance.HitEffect(0.1f, 1.2f);
+        SystemManager.Instance.CameraShake("Explosion", 0.1f, 50, 5);
+        SystemManager.Instance.ChangeColorGrading(-100);
     }
 
     
@@ -500,8 +531,10 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 animator.SetTrigger("Punch");
                 conAction = 2;
 
-                // 조금 이동
-                attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f, false));
+                if (IsRunning())
+                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(1f, false));
+                else
+                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f, false));
 
                 break;
 
@@ -749,7 +782,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     }
 
 
-    IEnumerator AttackFinishCoroutine()
+    private IEnumerator AttackFinishCoroutine()
     {
         isFinishAttackDelay = true;
 
@@ -863,6 +896,14 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         isHorizontalMove = false;
 
         conMaxSpeed = walkMaxSpeed;
+
+        if (isAttackMovingCoroutineRunning)
+        {
+            StopCoroutine(attackMovingCoroutine);
+
+            isAttackMovingCoroutineRunning = false;
+            motionTrail.OffMotionTrail();
+        }
     }
 
     private bool IsRunning()
@@ -914,7 +955,24 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         }
     }
 
-    IEnumerator AttackMovingCoroutine(float distance, bool motionTrailOn)
+    private IEnumerator KnockBackCoroutine(Vector3 moveDirection, float distance)
+    {
+        // 넉백 반대 방향을 바라본다
+        transform.forward = -moveDirection;
+
+        float conTime = 0;
+        float maxTime = 1;
+        while (conTime < maxTime)
+        {
+            // controller.Move(transform.forward * distance * 10 * Time.deltaTime);
+            controller.Move(moveDirection * distance * Time.deltaTime);
+
+            conTime += Time.deltaTime * 10;
+            yield return null;
+        }
+    }
+
+    private IEnumerator AttackMovingCoroutine(float distance, bool motionTrailOn)
     {
         // Motion Trail On
         if (motionTrailOn)
@@ -961,7 +1019,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         
         DropObjectScript.isThereWeaponAroundPlayer = false;
 
-        // 줍는 모션 실행
+        // 아이템을 줍는 동작 실행
         animator.SetTrigger("PickUp");
         conAction = 4;
     }
@@ -1342,5 +1400,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             default:
                 return null;
         }
+    }
+
+    private void DamageEnd()
+    {
+        // 이동
+        animator.SetTrigger("Move");
+        conAction = 0;
     }
 }

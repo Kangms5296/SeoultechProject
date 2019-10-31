@@ -29,6 +29,7 @@ public class SystemManager : MonoBehaviour
     private CinemachineBasicMultiChannelPerlin virtualCameraNoise;
     public PostProcessVolume postProcessVolume;
     private ChromaticAberration chromaticAberration;
+    private ColorGrading colorGrading;
     public RadialBlurImageEffect radialBlurImageEffect;
 
     // Hit Effect Use
@@ -54,13 +55,20 @@ public class SystemManager : MonoBehaviour
     [HideInInspector] public float speedAffectedBySlowMode;
     [HideInInspector] public float speedUnaffectedBySlowMode;
 
+    // Color Grading
+    private bool changeColorGradingCoroutineOn;
+    private Coroutine changeColorGradingCoroutine;
+
     private void Start()
     {
         if (virtualCamera != null)
             virtualCameraNoise = virtualCamera.GetCinemachineComponent<Cinemachine.CinemachineBasicMultiChannelPerlin>();
 
         if (postProcessVolume != null)
+        {
             chromaticAberration = postProcessVolume.profile.GetSetting<ChromaticAberration>();
+            colorGrading = postProcessVolume.profile.GetSetting<ColorGrading>();
+        }
 
         speedAffectedBySlowMode = 1;
         speedUnaffectedBySlowMode = 1;
@@ -96,6 +104,15 @@ public class SystemManager : MonoBehaviour
 
         slowModeCoroutine = StartCoroutine(SlowModeCoroutine(time, speed));
     }
+
+    public void ChangeColorGrading(float value)
+    {
+        if (changeColorGradingCoroutineOn)
+            StopCoroutine(changeColorGradingCoroutine);
+
+        changeColorGradingCoroutine = StartCoroutine(ChangeColorGradingCoroutine(value));
+    }
+
 
     private IEnumerator HitEffectCoroutine(float time, float magnitude)
     {
@@ -201,6 +218,26 @@ public class SystemManager : MonoBehaviour
         speedUnaffectedBySlowMode = 1;
 
         isSlowModeCoroutineOn = false;
+    }
+
+    private IEnumerator ChangeColorGradingCoroutine(float value)
+    {
+        changeColorGradingCoroutineOn = true;
+
+        float conTime = 0;
+        float maxTime = 1;
+
+        float startValue = colorGrading.saturation.value;
+
+        while (conTime < maxTime)
+        {
+            colorGrading.saturation.value = Mathf.Lerp(startValue, value, conTime);
+
+            conTime += Time.deltaTime;
+            yield return null;
+        }
+
+        changeColorGradingCoroutineOn = false;
     }
 
 }
