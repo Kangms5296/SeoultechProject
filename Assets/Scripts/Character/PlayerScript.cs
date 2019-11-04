@@ -65,12 +65,11 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     private Vector3 newMove     = Vector3.zero;                 // 현재 프레임에서의 이동 벡터
     private Vector3 moveVector  = Vector3.zero;                 // 이전과 현재 프레임에서의 이동 벡터를 보간하여 얻은 최종 이동 벡터
 
-    private Weapontype conWeaponType =  Weapontype.None;         // 현재 사용하는 무기의 종류
-    //private WeaponScript                conWeapon;              // 현재 손에 쥐고있는 무기 정보
+    private int conWeaponIndex;                                 // 현재 사용하는 무기의 slot 정보
+    private Weapontype conWeaponType =  Weapontype.None;        // 현재 사용하는 무기의 종류
     private SwingWeaponScript           swingWeapon;
     private ShootingWeaponScript        shootingWeapon;
     private ThrowingWeaponScript        throwingWeapon;
-    private int conWeaponIndex;                                 // 현재 사용하는 무기의 slot 정보
 
     private bool isFocusMode = false;                           // 현재 집중모드를 사용중인가?
 
@@ -82,6 +81,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     public float gravity;                                       // 중력 가속도
     private float resultGravity = 0;                            // 현재 작용되는 중력
 
+    private bool canTakeDamage = true;                          // 피격 판정
 
     void Start()
     {
@@ -335,16 +335,34 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     public void TakeDamage(int damage, Vector3 knockBackDirection, float distance)
     {
+        if (!canTakeDamage)
+            return;
+
+        // 이동 멈춤
+        StopMove();
+
         // 데미지 처리
         if (DecreaseHp(damage) == 0)
-            // 체력 0 이하는 사망 처리
-            Die();
+        // 체력 0 이하는 사망 처리
+        {
+            // 피격 판정 off
+            canTakeDamage = false;
+
+            // 피격 이펙트
+            SystemManager.Instance.HitEffect(0.1f, 1.2f);
+            SystemManager.Instance.CameraShake("Explosion", 0.1f, 50, 5);
+            SystemManager.Instance.ChangeColorGrading(-100);
+
+            // 공격 방향으로의 넉백
+            StartCoroutine(KnockBackCoroutine(knockBackDirection, distance));
+
+            // 사망 애니메이션
+            animator.SetTrigger("Die");
+            conAction = 8;
+        }
         // 체력 0이 아닌 경우
         else
         {
-            // 이동 멈춤
-            StopMove();
-
             // 피격 이펙트
             SystemManager.Instance.HitEffect(0.1f, 1.2f);
             SystemManager.Instance.CameraShake("Explosion", 0.1f, 50, 5);
@@ -353,22 +371,11 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // 공격 방향으로의 넉백
             StartCoroutine(KnockBackCoroutine(knockBackDirection, distance));
 
+            // 피격 애니메이션
             animator.SetTrigger("Damaged");
             conAction = 8;
         }
     }
-
-    public void Die()
-    {
-        // 이동 멈춤
-        StopMove();
-
-        // 피격 이펙트
-        SystemManager.Instance.HitEffect(0.1f, 1.2f);
-        SystemManager.Instance.CameraShake("Explosion", 0.1f, 50, 5);
-        SystemManager.Instance.ChangeColorGrading(-100);
-    }
-
     
     public void ContinuousShootingOff()
     {
@@ -1270,8 +1277,11 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 이동을 멈춘다.
         StopMove();
 
+        // 구르기 간 피격 판정 Off
+        canTakeDamage = false;
+
         // 기존의 상태에서의 변화 체크
-        if(isFocusMode)
+        if (isFocusMode)
         {
             isFocusMode = false;
 
@@ -1304,6 +1314,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     private void RollEnd()
     {
+        // 피격 판정 On
+        canTakeDamage = true;
+
         // 이동
         animator.SetTrigger("Move");
         conAction = 0;

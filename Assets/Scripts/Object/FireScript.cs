@@ -21,11 +21,14 @@ public class FireScript : MonoBehaviour
 
     // 공격 범위 내 Monster 정보
     private List<MonsterScript> inHitAreaMonster;
+    // 공격 범위 내 Player 정보
+    private List<PlayerScript> inHitAreaPlayer;
 
 
     private void OnEnable()
     {
         inHitAreaMonster = new List<MonsterScript>();
+        inHitAreaPlayer = new List<PlayerScript>();
 
         StartCoroutine(Burning());
         StartCoroutine(Damaging());
@@ -56,7 +59,15 @@ public class FireScript : MonoBehaviour
                         continue;
 
                     // 데미지 처리
-                    monster.TakeDamage(damage, new Vector3(monster.transform.position.x - transform.position.x, 0, monster.transform.position.z - transform.position.z), 0.1f);
+                    monster.TakeDamage(damage, new Vector3(monster.transform.position.x - transform.position.x, 0, monster.transform.position.z - transform.position.z).normalized, 1.5f);
+
+                    yield return null;
+                }
+
+                foreach(PlayerScript player in inHitAreaPlayer)
+                {
+                    // 데미지 처리
+                    player.TakeDamage(damage, new Vector3(player.transform.position.x - transform.position.x, 0, player.transform.position.z - transform.position.z).normalized, 1.5f);
 
                     yield return null;
                 }
@@ -158,7 +169,13 @@ public class FireScript : MonoBehaviour
         }
         else if (other.CompareTag("Player"))
         {
+            PlayerScript player = other.GetComponent<PlayerScript>();
 
+            // 기존에 영역에 들어있던 플레이어면 무시
+            if (inHitAreaPlayer.Contains(player))
+                return;
+
+            inHitAreaPlayer.Add(player);
         }
     }
 
@@ -168,7 +185,7 @@ public class FireScript : MonoBehaviour
         {
             MonsterScript monster = other.GetComponent<MonsterScript>();
 
-            // 기존에 영역에 들어있는 몬스터가 다시 처리되면 무시
+            // 영역에 없던 몬스터이면 무시
             if (!inHitAreaMonster.Contains(monster))
                 return;
 
@@ -176,7 +193,13 @@ public class FireScript : MonoBehaviour
         }
         else if (other.CompareTag("Player"))
         {
+            PlayerScript player = other.GetComponent<PlayerScript>();
 
+            // 영역에 없던 플레어어면 무시
+            if (!inHitAreaPlayer.Contains(player))
+                return;
+
+            inHitAreaPlayer.Remove(player);
         }
     }
 

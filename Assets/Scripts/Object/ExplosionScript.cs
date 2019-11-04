@@ -11,13 +11,18 @@ public class ExplosionScript : MonoBehaviour
     public Collider col;
 
     // 공격 범위 내 Monster 정보
-    private List<MonsterScript> inHitAreaMonster = new List<MonsterScript>();
-
+    private List<MonsterScript> inHitAreaMonster;
     // 공격 범위 내 Crate 정보
-    private List<BeatableObjectScript> inHitAreaObject = new List<BeatableObjectScript>();
+    private List<BeatableObjectScript> inHitAreaObject;
+    // 공격 범위 내 Player 정보
+    private List<PlayerScript> inHitAreaPlayer;
 
     private void OnEnable()
     {
+        inHitAreaMonster = new List<MonsterScript>();
+        inHitAreaObject = new List<BeatableObjectScript>();
+        inHitAreaPlayer = new List<PlayerScript>();
+
         StartCoroutine(Damaging());
     }
     
@@ -44,9 +49,10 @@ public class ExplosionScript : MonoBehaviour
                 continue;
 
             // 데미지 처리
-            monster.TakeDamage(damage, new Vector3(monster.transform.position.x - transform.position.x, 0, monster.transform.position.z - transform.position.z), 2);
+            monster.TakeDamage(damage, new Vector3(monster.transform.position.x - transform.position.x, 0, monster.transform.position.z - transform.position.z).normalized, 5f);
+
+            yield return null;
         }
-        inHitAreaMonster = new List<MonsterScript>();
 
         foreach (BeatableObjectScript temp in inHitAreaObject)
         {
@@ -57,8 +63,18 @@ public class ExplosionScript : MonoBehaviour
                     break;
 
                 temp.Hit();
+                yield return null;
             }
         }
+
+        foreach (PlayerScript player in inHitAreaPlayer)
+        {
+            // 데미지 처리
+            player.TakeDamage(damage, new Vector3(player.transform.position.x - transform.position.x, 0, player.transform.position.z - transform.position.z).normalized, 5f);
+
+            yield return null;
+        }
+
 
         col.enabled = false;
 
@@ -105,6 +121,16 @@ public class ExplosionScript : MonoBehaviour
 
             inHitAreaObject.Add(temp);
         }
+        else if (other.CompareTag("Player"))
+        {
+            PlayerScript player = other.GetComponent<PlayerScript>();
+
+            // 기존에 영역에 들어있던 플레이어면 무시
+            if (inHitAreaPlayer.Contains(player))
+                return;
+
+            inHitAreaPlayer.Add(player);
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -131,7 +157,13 @@ public class ExplosionScript : MonoBehaviour
         }
         else if(other.CompareTag("Player"))
         {
+            PlayerScript player = other.GetComponent<PlayerScript>();
 
+            // 영역에 없던 플레어어면 무시
+            if (!inHitAreaPlayer.Contains(player))
+                return;
+
+            inHitAreaPlayer.Remove(player);
         }
     }
 }
