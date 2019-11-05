@@ -464,11 +464,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             }
         }
         isMoving = isHorizontalMove || isVerticalMove;
-        
-
 
         // 이동 방향 계산
-        newMove = Vector3.forward * verticalSpeed + Vector3.left * horizontalSpeed;
+        newMove = SystemManager.Instance.forward * verticalSpeed + SystemManager.Instance.left * horizontalSpeed;
         moveVector = Vector3.Lerp(beforeMove, newMove, Time.smoothDeltaTime * 20);
 
 
@@ -477,14 +475,11 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         moveMaginitude = moveVector.magnitude > conMaxSpeed ? conMaxSpeed : moveVector.magnitude;
         animator.SetFloat("Speed", moveMaginitude / runMaxSpeed);
 
-
-
+        
         // 이전 프레임과 반대 방향으로 방향을 바꾸면 순간적으로 큰 감속
         if (Vector3.Dot(beforeMove, newMove) < 0)
             moveMaginitude = moveMaginitude / 5;
         beforeMove = newMove;
-
-
 
         // 이동 방향으로 회전
         Vector2 rot;
@@ -510,8 +505,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         {
             if(isMoving)
             {
-                rot = new Vector2(horizontalSpeed, verticalSpeed);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, Quaternion.FromToRotation(Vector3.up, rot).eulerAngles.z, 0), Time.smoothDeltaTime * 20);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(newMove), Time.smoothDeltaTime * 20);
+                //transform.rotation = Quaternion.LookRotation(newMove);
             }
         }
 

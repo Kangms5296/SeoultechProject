@@ -21,7 +21,7 @@ public class MathManager : MonoBehaviour
             return _instance;
         }
     }
-    int count = 0;
+
     public int[] Combination(int first, int last)
     {
         int length = last - first;

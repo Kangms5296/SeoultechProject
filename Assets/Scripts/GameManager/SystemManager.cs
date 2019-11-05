@@ -59,6 +59,10 @@ public class SystemManager : MonoBehaviour
     private bool changeColorGradingCoroutineOn;
     private Coroutine changeColorGradingCoroutine;
 
+    // 게임 기준 Vector
+    public Vector3 forward;
+    public Vector3 left;
+
     private void Start()
     {
         if (virtualCamera != null)
@@ -72,6 +76,9 @@ public class SystemManager : MonoBehaviour
 
         speedAffectedBySlowMode = 1;
         speedUnaffectedBySlowMode = 1;
+
+        forward = new Vector3(virtualCamera.transform.forward.x , 0 , virtualCamera.transform.forward.z).normalized;
+        left = new Vector3(virtualCamera.transform.right.x, 0, virtualCamera.transform.right.z).normalized * -1;
     }
 
 

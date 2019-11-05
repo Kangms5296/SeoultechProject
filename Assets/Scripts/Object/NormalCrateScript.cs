@@ -16,6 +16,8 @@ public class NormalCrateScript : MonoBehaviour
         foreach (WeaponCrateInstantiateObject weapon in weaponList)
             weaponListProbabilitySum += weapon.probability;
 
+        dropedWeaponParent = GameObject.Find("Droped Weapon Parent").GetComponent<Transform>();
+
         int conProbabilitySum = 0;
         int probability = Random.Range(0, weaponListProbabilitySum) + 1;
         foreach (WeaponCrateInstantiateObject weapon in weaponList)

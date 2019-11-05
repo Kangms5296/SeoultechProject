@@ -26,7 +26,7 @@ public class PlayerHpBarScript : MonoBehaviour
         if (!isInHpCoroutine)
             StartCoroutine(InHpRecoverCoroutine());
 
-        string hp = conHp.ToString("000") + "   /   " + maxHp.ToString("000");
+        hpText.text = conHp.ToString("000") + "   /   " + maxHp.ToString("000");
     }
 
     public void DecreaseHp(int conHp, int maxHp)

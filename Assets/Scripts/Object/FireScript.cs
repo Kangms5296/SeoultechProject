@@ -63,11 +63,14 @@ public class FireScript : MonoBehaviour
 
                     yield return null;
                 }
+            }
 
-                foreach(PlayerScript player in inHitAreaPlayer)
+            if(inHitAreaPlayer.Count != 0)
+            {
+                foreach (PlayerScript player in inHitAreaPlayer)
                 {
                     // 데미지 처리
-                    player.TakeDamage(damage, new Vector3(player.transform.position.x - transform.position.x, 0, player.transform.position.z - transform.position.z).normalized, 1.5f);
+                    player.TakeDamage(damage, new Vector3(player.transform.position.x - transform.position.x, 0, player.transform.position.z - transform.position.z).normalized, 3f);
 
                     yield return null;
                 }
@@ -170,7 +173,7 @@ public class FireScript : MonoBehaviour
         else if (other.CompareTag("Player"))
         {
             PlayerScript player = other.GetComponent<PlayerScript>();
-
+            Debug.Log("Hi");
             // 기존에 영역에 들어있던 플레이어면 무시
             if (inHitAreaPlayer.Contains(player))
                 return;

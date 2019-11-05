@@ -58,13 +58,19 @@ public class WeaponCrateScript : BeatableObjectScript
             int angle = randomSeed[i] * 60;
             StartCoroutine(WeaponDropCoroutine(angle, 1.2f, 1.5f));
         }
-
     }
 
     public override void Hit()
     {
-        conHitCount++;
+        // 이미 부서진 Crate는 피격 무시
+        if (!canHit)
+            return;
 
+        // 타격 효과
+        SystemManager.Instance.HitEffect(0.07f, 0.5f);
+        
+        // 일정 타격 이후엔 Crate 폭파
+        conHitCount++;
         if (conHitCount >= maxHitCount)
             Break();
         else
