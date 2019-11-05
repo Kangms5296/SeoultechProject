@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using Cinemachine;
@@ -23,8 +22,8 @@ public class SystemManager : MonoBehaviour
             return _instance;
         }
     }
-    
 
+    public CinemachineBrain cinemachineBrain;
     public CinemachineVirtualCamera virtualCamera;
     private CinemachineBasicMultiChannelPerlin virtualCameraNoise;
     public PostProcessVolume postProcessVolume;
@@ -77,8 +76,9 @@ public class SystemManager : MonoBehaviour
         speedAffectedBySlowMode = 1;
         speedUnaffectedBySlowMode = 1;
 
-        forward = new Vector3(virtualCamera.transform.forward.x , 0 , virtualCamera.transform.forward.z).normalized;
-        left = new Vector3(virtualCamera.transform.right.x, 0, virtualCamera.transform.right.z).normalized * -1;
+        Transform cameraTrans = Camera.main.transform;
+        forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
+        left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
     }
 
 
@@ -118,6 +118,11 @@ public class SystemManager : MonoBehaviour
             StopCoroutine(changeColorGradingCoroutine);
 
         changeColorGradingCoroutine = StartCoroutine(ChangeColorGradingCoroutine(value));
+    }
+    
+    public void RotateViewVector()
+    {
+        StartCoroutine(RotateViewVectorCoroutine());
     }
 
 
@@ -247,4 +252,23 @@ public class SystemManager : MonoBehaviour
         changeColorGradingCoroutineOn = false;
     }
 
+    private IEnumerator RotateViewVectorCoroutine()
+    {
+        Transform cameraTrans = Camera.main.transform;
+
+        // 카메라 회전이 지연되면 대기
+        while (!cinemachineBrain.IsBlending)
+            yield return null;
+
+        // 카메라 회전에 맞춰서 시점 벡터를 변환
+        while (cinemachineBrain.IsBlending)
+        {
+            forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
+            left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+            yield return null;
+        }
+
+        forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
+        left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+    }
 }

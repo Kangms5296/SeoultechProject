@@ -85,18 +85,19 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     void Start()
     {
-        CanChangeAction = new bool[9, 9]
+        CanChangeAction = new bool[10, 10]
         {
-            //  Move         Jump         Attack     Running     Pick Up     weapon Change       Roll        Focus Mode  Focue Mode Attack
-            {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,}, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
-            {   false,       false,       false,     false,      false,      false,              true ,      false,      false,}, // 2    Attack   <= 현재 공격을 하는 중 ~이 가능한가?
-            {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,}, // 3    Running  <= 이 배열은 쓰이지 않는다.
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 4    Pick Up
-            {   true ,       false,       false,     true ,      false,      false,              false,      false,      false,}, // 5    Weapon Change
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 6    Roll
-            {   false,       false,       true ,     false,      false,      false,              true ,      true ,      true ,}, // 7    Focue Mode
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,}, // 8    Can't  Everything
+            //  Move         Jump         Attack     Running     Pick Up     weapon Change       Roll        Focus Mode  Focue Mode Attack  Damaged
+            {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,             false}, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      false,              true ,      false,      false,             false}, // 2    Attack   <= 현재 공격을 하는 중 ~이 가능한가?
+            {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,             false}, // 3    Running  <= 이 배열은 쓰이지 않는다.
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 4    Pick Up
+            {   true ,       false,       false,     true ,      false,      false,              false,      false,      false,             false}, // 5    Weapon Change
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 6    Roll
+            {   false,       false,       true ,     false,      false,      false,              true ,      true ,      true ,             false}, // 7    Focue Mode
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 8    Can't  Everything
+            {   false,       false,       false,     false,      false,      false,              true ,      false,      false,             false}, // 9    Damaged
 
         };
 
@@ -373,7 +374,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
             // 피격 애니메이션
             animator.SetTrigger("Damaged");
-            conAction = 8;
+            conAction = 9;
         }
     }
     

@@ -66,18 +66,6 @@ public class SwingMonsterScript : MonsterScript
 
     private IEnumerator AttackCoroutine()
     {
-        // 공격 시작 모션
-        anim.SetTrigger("Cast Spell");
-
-        // 공격 시작 모션이 끝날수 있도록 일정시간 대기
-        float conTime = 0;
-        float maxTime = 1.5f;
-        while (conTime < maxTime)
-        {
-            conTime += Time.deltaTime;
-            yield return null;
-        }
-
         // 공격 모션 실행
         anim.SetTrigger("Stab Attack");
 
@@ -85,11 +73,11 @@ public class SwingMonsterScript : MonsterScript
             yield return null;
 
         // 공격 간 전방이동 벡터 계산
-        Vector3 movePos = transform.position + transform.forward;
+        Vector3 movePos = transform.position + transform.forward * 2f;
 
         // 2초간 전방이동
-        conTime = 0;
-        maxTime = anim.GetCurrentAnimatorStateInfo(0).length;
+        float conTime = 0;
+        float maxTime = anim.GetCurrentAnimatorStateInfo(0).length;
         while (conTime < maxTime)
         {
             transform.position = Vector3.Lerp(transform.position, movePos, conTime / maxTime);

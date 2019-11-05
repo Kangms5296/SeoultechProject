@@ -70,18 +70,6 @@ public class ShootingMonsterScript : MonsterScript
 
     private IEnumerator AttackCoroutine()
     {
-        // 공격 시작 모션
-        anim.SetTrigger("Cast Spell");
-
-        // 공격 시작 모션이 끝날수 있도록 일정시간 대기
-        float conTime = 0;
-        float maxTime = 1.5f;
-        while (conTime < maxTime)
-        {
-            conTime += Time.deltaTime;
-            yield return null;
-        }
-
         // 공격 모션 실행
         isAttackMotion = true;
         anim.SetTrigger("Smash Attack");
