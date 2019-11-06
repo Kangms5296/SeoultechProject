@@ -25,7 +25,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     public WeaponSlotManagerScript weaponSlotManager;           // 플레이어 무기 교체 관련 스크립트
     public MotionTrail motionTrail;                             // 고속 이동 간 사용할 Motion Trail 스크립트
     public PlayerHpBarScript hpBarScript;                       // 플레이어 Hp UI 관련 스크립트
-
+    public AudioSource moveAudio;                               // 이동 소리 Source
+    public AudioSource weaponAudio;                             // 무기 소리 Source
 
     // 상태 변화 가능유무 2차배열
     private bool[,] CanChangeAction;
@@ -88,12 +89,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         CanChangeAction = new bool[10, 10]
         {
             //  Move         Jump         Attack     Running     Pick Up     weapon Change       Roll        Focus Mode  Focue Mode Attack  Damaged
-            {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,             false}, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
+            {   true ,       true ,       true ,     true ,      true ,      true ,              true ,      true ,      false,             true }, // 0    Move     <= 현재 이동을 하는 중 ~이 가능한가?
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             true }, // 1    Jump     <= 현재 점프를 하는 중 ~이 가능한가?
             {   false,       false,       false,     false,      false,      false,              true ,      false,      false,             false}, // 2    Attack   <= 현재 공격을 하는 중 ~이 가능한가?
-            {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,             false}, // 3    Running  <= 이 배열은 쓰이지 않는다.
-            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 4    Pick Up
-            {   true ,       false,       false,     true ,      false,      false,              false,      false,      false,             false}, // 5    Weapon Change
+            {   true ,       false,       false,     true ,      false,      true ,              true ,      true ,      false,             true }, // 3    Running  <= 이 배열은 쓰이지 않는다.
+            {   false,       false,       false,     false,      false,      false,              false,      false,      false,             true }, // 4    Pick Up
+            {   true ,       false,       false,     true ,      false,      false,              false,      false,      false,             true }, // 5    Weapon Change
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 6    Roll
             {   false,       false,       true ,     false,      false,      false,              true ,      true ,      true ,             false}, // 7    Focue Mode
             {   false,       false,       false,     false,      false,      false,              false,      false,      false,             false}, // 8    Can't  Everything
@@ -339,8 +340,23 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (!canTakeDamage)
             return;
 
+        // 집중 상태에서는 상태 해제
+        if (isFocusMode)
+        {
+            isFocusMode = false;
+
+            // 딜레이 코루틴 시작
+            skillManager.Focus();
+
+            // CrossHair 제거
+            crossHair.Destroy();
+        }
+
         // 이동 멈춤
         StopMove();
+
+        if (conWeaponType == Weapontype.Swing)
+            swingWeapon.TrailOff();
 
         // 데미지 처리
         if (DecreaseHp(damage) == 0)
@@ -371,8 +387,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
             // 공격 방향으로의 넉백
             StartCoroutine(KnockBackCoroutine(knockBackDirection, distance));
-
-            // 피격 애니메이션
+            
             animator.SetTrigger("Damaged");
             conAction = 9;
         }
@@ -383,6 +398,15 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         continuousShootingOn = false;
     }
 
+    public void MoveSoundPlay()
+    {
+        moveAudio.Play();
+    }
+
+    public void WeaponSoundPlay()
+    {
+        weaponAudio.Play();
+    }
 
     // ===================================================== private function ============================================================
 
@@ -535,7 +559,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 conAction = 2;
 
                 if (IsRunning())
-                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(1f, false));
+                    attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.8f, false));
                 else
                     attackMovingCoroutine = StartCoroutine(AttackMovingCoroutine(0.3f, false));
 
@@ -585,7 +609,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             case Weapontype.Shooting:
                 // 기존의 이동을 멈춘다.
                 StopMove();
-
+                
                 // 조준 중 공격
                 if (conAction == 7)
                 {
@@ -651,7 +675,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     if (swingWeapon.conUsing <= 0)
                     {
                         // 파괴 이펙트 생성
-                        GameObject temp = ObjectPullManager.GetInstanceByName("WeaponBreaking");
+                        GameObject temp = ObjectPullManager.Instance.GetInstanceByName("WeaponBreaking");
                         temp.transform.position = swingWeapon.transform.position + temp.transform.position;
                         temp.SetActive(true);
 
@@ -714,7 +738,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     if (swingWeapon.conUsing <= 0)
                     {
                         // 파괴 이펙트 생성
-                        GameObject temp = ObjectPullManager.GetInstanceByName("WeaponBreaking");
+                        GameObject temp = ObjectPullManager.Instance.GetInstanceByName("WeaponBreaking");
                         temp.transform.position = swingWeapon.transform.position + temp.transform.position;
                         temp.SetActive(true);
 
@@ -1051,6 +1075,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         conWeapon = DropObjectScript.dropObject;
         conWeaponType = conWeapon.weaponType;
         SetWeaponInfo(conWeapon);
+        weaponAudio.clip = conWeapon.weaponUsingSound;
 
         // 무기의 상태 및 정보를 플레이어가 가지는 상태로 변경
         conWeapon.SetOwner(this);
@@ -1204,6 +1229,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 새로운 무기로 정보를 변경
                 conWeaponType = newWeapon.weaponType;
                 SetWeaponInfo(newWeapon);
+                weaponAudio.clip = newWeapon.weaponUsingSound;
             }
         }
     }
@@ -1257,6 +1283,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 // 새로운 무기로 정보를 변경
                 conWeaponType = newWeapon.weaponType;
                 SetWeaponInfo(newWeapon);
+                weaponAudio.clip = newWeapon.weaponUsingSound;
             }
         }
     }

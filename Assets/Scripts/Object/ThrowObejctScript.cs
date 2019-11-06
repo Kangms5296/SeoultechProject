@@ -35,7 +35,7 @@ public class ThrowObejctScript : MonoBehaviour
     public void Boom()
     {
         // 폭발 파티클 생성
-        GameObject temp = ObjectPullManager.GetInstanceByName(particleName);
+        GameObject temp = ObjectPullManager.Instance.GetInstanceByName(particleName);
         temp.transform.position = transform.position;
         temp.SetActive(true);
 

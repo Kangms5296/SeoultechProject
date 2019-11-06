@@ -30,6 +30,7 @@ public class SystemManager : MonoBehaviour
     private ChromaticAberration chromaticAberration;
     private ColorGrading colorGrading;
     public RadialBlurImageEffect radialBlurImageEffect;
+    public RectTransform worldSpaceCanvas;
 
     // Hit Effect Use
     private bool isHitEffectCoroutineOn;
@@ -58,9 +59,9 @@ public class SystemManager : MonoBehaviour
     private bool changeColorGradingCoroutineOn;
     private Coroutine changeColorGradingCoroutine;
 
-    // 게임 기준 Vector
-    public Vector3 forward;
-    public Vector3 left;
+    // 시점 벡터
+    [HideInInspector] public Vector3 forward;
+    [HideInInspector] public Vector3 left;
 
     private void Start()
     {
@@ -79,6 +80,10 @@ public class SystemManager : MonoBehaviour
         Transform cameraTrans = Camera.main.transform;
         forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
         left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+
+        // 첫 라운드 시작
+        RoundManager.Instance.RoundStart(0);
+        worldSpaceCanvas.rotation = Camera.main.transform.rotation;
     }
 
 
@@ -260,15 +265,22 @@ public class SystemManager : MonoBehaviour
         while (!cinemachineBrain.IsBlending)
             yield return null;
 
-        // 카메라 회전에 맞춰서 시점 벡터를 변환
+        // 카메라가 회전되면..
         while (cinemachineBrain.IsBlending)
         {
+            // 회전에 맞춰서 시점 벡터를 변환
             forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
             left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+
+            // World Space Canvas도 회전
+            worldSpaceCanvas.rotation = cameraTrans.rotation;
+
             yield return null;
         }
 
         forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
         left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+
+        worldSpaceCanvas.rotation = cameraTrans.rotation;
     }
 }

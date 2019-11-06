@@ -10,12 +10,6 @@ public class SwingMonsterScript : MonsterScript
     public MonsterAttackAreaScript attackAreaScript;
     private bool attackMovingForward;
 
-    // Start is called before the first frame update
-    protected override void Start()
-    {
-        base.Start();
-    }
-
     protected override IEnumerator FSM()
     {
         // 플레이어를 추적하면서 시작

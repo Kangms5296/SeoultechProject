@@ -86,26 +86,45 @@ public class ProjectileScript : MonoBehaviour
                 MonsterScript monster = other.GetComponent<MonsterScript>();
                 monster.TakeDamage(damage, moveVector, 0.1f);
 
-                // 이동 정지
-                if (movingCoroutine != null)
-                    StopCoroutine(movingCoroutine);
-
-                // 관통 여부에 따라 총알 삭제
+                // 관통 여부에 따라..
                 if (!isPenetrating)
+                {
+                    // 이동 정지
+                    if (movingCoroutine != null)
+                        StopCoroutine(movingCoroutine);
+
+                    // 총알 삭제
                     StartCoroutine(Removing());
+                }
             }
             else if (other.CompareTag("Beatable Object"))
             {
                 BeatableObjectScript temp = other.GetComponent<BeatableObjectScript>();
                 temp.Hit();
 
-                // 이동 정지
-                if (movingCoroutine != null)
-                    StopCoroutine(movingCoroutine);
-
-                // 관통 여부에 따라 총알 삭제
+                // 관통 여부에 따라..
                 if (!isPenetrating)
+                {
+                    // 이동 정지
+                    if (movingCoroutine != null)
+                        StopCoroutine(movingCoroutine);
+
+                    // 총알 삭제
                     StartCoroutine(Removing());
+                }
+            }
+            else if (other.CompareTag("Obstacle"))
+            {
+                // 관통 여부에 따라..
+                if (!isPenetrating)
+                {
+                    // 이동 정지
+                    if (movingCoroutine != null)
+                        StopCoroutine(movingCoroutine);
+
+                    // 총알 삭제
+                    StartCoroutine(Removing());
+                }
             }
         }
         else
@@ -116,13 +135,16 @@ public class ProjectileScript : MonoBehaviour
                 PlayerScript player = other.GetComponent<PlayerScript>();
                 player.TakeDamage(damage, moveVector, 1);
 
-                // 이동 정지
-                if (movingCoroutine != null)
-                    StopCoroutine(movingCoroutine);
-
-                // 관통 여부에 따라 총알 삭제
+                // 관통 여부에 따라..
                 if (!isPenetrating)
+                {
+                    // 이동 정지
+                    if (movingCoroutine != null)
+                        StopCoroutine(movingCoroutine);
+
+                    // 총알 삭제
                     StartCoroutine(Removing());
+                }
             }
         }
     }

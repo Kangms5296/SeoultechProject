@@ -14,12 +14,6 @@ public class ShootingMonsterScript : MonsterScript
 
     private bool isAttackMotion;
 
-    // Start is called before the first frame update
-    protected override void Start()
-    {
-        base.Start();
-    }
-
     protected override IEnumerator FSM()
     {
         // 플레이어를 추적하면서 시작
@@ -88,7 +82,7 @@ public class ShootingMonsterScript : MonsterScript
     private void ShootingProjectile()
     {
         // 투사체를 생성
-        GameObject temp = ObjectPullManager.GetInstanceByName(projectileName);
+        GameObject temp = ObjectPullManager.Instance.GetInstanceByName(projectileName);
 
         // 발사
         if (temp != null)

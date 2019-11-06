@@ -42,7 +42,7 @@ public class AttackHitAreaScript : MonoBehaviour
                 SystemManager.Instance.HitEffect(0.05f, 0.5f);
 
                 // 타격 이펙트
-                GameObject effect = ObjectPullManager.GetInstanceByName("PunchHit");
+                GameObject effect = ObjectPullManager.Instance.GetInstanceByName("PunchHit");
                 Vector3 effectPos = monster.transform.position + new Vector3(Random.Range(-0.3f, 0.3f), 0, Random.Range(0, 0.2f));
                 effect.transform.position = effectPos;
                 effect.SetActive(true);
@@ -54,7 +54,7 @@ public class AttackHitAreaScript : MonoBehaviour
                 SystemManager.Instance.SlowMode(0.1f, 0.2f);
 
                 // 타격 이펙트
-                GameObject effect = ObjectPullManager.GetInstanceByName("Hit");
+                GameObject effect = ObjectPullManager.Instance.GetInstanceByName("Hit");
                 Vector3 effectPos = monster.transform.position + new Vector3(Random.Range(-0.5f, 0.5f), 0, Random.Range(-0.5f, 0.5f));
                 effect.transform.position = effectPos;
                 effect.SetActive(true);
@@ -64,6 +64,7 @@ public class AttackHitAreaScript : MonoBehaviour
         // 공격 범위의 모든 공격 가능 물건들을 공격
         foreach(BeatableObjectScript temp in inHitAreaObject)
         {
+            // 부서진 오브젝트는 공격x
             if (temp.canHit)
             {
                 temp.Hit();
@@ -74,7 +75,7 @@ public class AttackHitAreaScript : MonoBehaviour
                     SystemManager.Instance.HitEffect(0.05f, 0.3f);
 
                     // 타격 이펙트
-                    GameObject effect = ObjectPullManager.GetInstanceByName("PunchHit");
+                    GameObject effect = ObjectPullManager.Instance.GetInstanceByName("PunchHit");
                     Vector3 effectPos = transform.position + knockBackDirection * 0.5f;
                     effect.transform.position = effectPos;
                     effect.SetActive(true);
@@ -86,7 +87,7 @@ public class AttackHitAreaScript : MonoBehaviour
                     SystemManager.Instance.SlowMode(0.1f, 0.2f);
 
                     // 타격 이펙트
-                    GameObject effect = ObjectPullManager.GetInstanceByName("Hit");
+                    GameObject effect = ObjectPullManager.Instance.GetInstanceByName("Hit");
                     Vector3 effectPos = transform.position + knockBackDirection * 0.8f;
                     effect.transform.position = effectPos;
                     effect.SetActive(true);

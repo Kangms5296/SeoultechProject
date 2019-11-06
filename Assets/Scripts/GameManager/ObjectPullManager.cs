@@ -6,6 +6,26 @@ using UnityEngine;
 
 public class ObjectPullManager : MonoBehaviour
 {
+
+    private static ObjectPullManager _instance = null;
+
+    public static ObjectPullManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType(typeof(ObjectPullManager)) as ObjectPullManager;
+
+                if (_instance == null)
+                    Debug.LogError("There's no active ObjectPullManager object");
+            }
+
+            return _instance;
+        }
+    }
+
+
     [System.Serializable]
     public struct PullInfo
     {
@@ -16,7 +36,7 @@ public class ObjectPullManager : MonoBehaviour
     }
     public List<PullInfo> pullInfos;
 
-    private static Dictionary<string, List<GameObject>> pullList;
+    private Dictionary<string, List<GameObject>> pullList;
 
     // Start is called before the first frame update
     void Awake()
@@ -33,7 +53,7 @@ public class ObjectPullManager : MonoBehaviour
         }
     }
 
-    public static GameObject GetInstanceByName(string typeName)
+    public GameObject GetInstanceByName(string typeName)
     {
         for (int i = 0; i < pullList[typeName].Count; i++)
             if (pullList[typeName][i].activeSelf == false)

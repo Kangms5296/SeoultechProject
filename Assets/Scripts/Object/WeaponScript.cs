@@ -32,6 +32,8 @@ public abstract class WeaponScript : MonoBehaviour
     // 현재 아이템을 사용할 때 발생되는 이벤트
     [HideInInspector] public delegate void UsingWeaponEvent();
     [HideInInspector] public event UsingWeaponEvent usingWeaponEvent;
+    // 무기 사용간 효과음
+    public AudioClip weaponUsingSound;
 
     // Start is called before the first frame update
     virtual protected void Start()

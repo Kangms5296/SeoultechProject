@@ -13,7 +13,6 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
 
     // Player Info
     [HideInInspector] public bool isPlayerInAttackDetectArea;
-    [HideInInspector] public bool isPlayerInAttackArea;
     protected PlayerScript playerScript;
     protected Transform playerTrans;
 
@@ -40,10 +39,11 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
     public int maxHp;                                       // 캐릭터 최대 체력
     public int conHp;                                       // 캐릭터 현재 체력
     [HideInInspector] public bool isDie;                    // 캐릭터 사망 여부
+    public float height;                                    // HP 바를 띄울 높이
 
 
     // Start is called before the first frame update
-    protected virtual void Start()
+    private void Awake()
     {
         rigid = GetComponent<Rigidbody>();
         coll = GetComponent<BoxCollider>();
@@ -56,11 +56,25 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
 
         normalMaterialColor = new Color(0, 0, 0);
         hitMaterialColor = new Color(0.4f, 0, 0);
-        
-        conHp = maxHp;
-        hpBarScript = ObjectPullManager.GetInstanceByName("MonsterHp").GetComponent<MonsterHpBarScript>();
-        hpBarScript.Init(transform);
+    }
 
+    private void OnEnable()
+    {
+        // 이전에 변경된 정보를 다시 원래대로
+        coll.enabled = true;
+        conHp = maxHp;
+        isDie = false;
+        isPlayerInAttackDetectArea = false;
+
+        // 사망으로 인해 삭제된 마테리얼 원래대로
+        meshRenderer.material.SetFloat("_Cutoff", 0);
+        meshRenderer.material.SetFloat("_Thick", 0);
+
+        // 새로 HP Bar를 붙여서
+        hpBarScript = ObjectPullManager.Instance.GetInstanceByName("MonsterHp").GetComponent<MonsterHpBarScript>();
+        hpBarScript.Init(transform, height);
+
+        // 행동 시작
         StartCoroutine(FSM());
     }
 
@@ -91,7 +105,7 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
             SystemManager.Instance.HitEffect(0.07f, 0.5f);
 
             // 혈흔 파티클 생성
-            GameObject blood = ObjectPullManager.GetInstanceByName("Blood");
+            GameObject blood = ObjectPullManager.Instance.GetInstanceByName("Blood");
             blood.transform.position = transform.position;
             blood.transform.forward = -knockBackDirection.normalized;
             blood.SetActive(true);
@@ -219,6 +233,9 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
         }
         meshRenderer.material.SetFloat("_Cutoff", 1);
         meshRenderer.material.SetFloat("_Thick", 1);
+
+        // 몬스터가 죽었음을 알린다.
+        RoundManager.Instance.MonsterDie();
 
         // 캐릭터 삭제
         gameObject.SetActive(false);

@@ -19,13 +19,18 @@ public class MonsterHpBarScript : MonoBehaviour
     private bool isChangingHpDecrease = false;
     private bool isInHpDecrease = false;
 
+    private float height;
+
     private void LateUpdate()
     {
-        transform.position = target.position;
+        transform.position = target.position + new Vector3(0, height, 0);
     }
 
-    public void Init(Transform target)
+    public void Init(Transform target, float height)
     {
+        isInHpDecrease = false;
+        isChangingHpDecrease = false;
+
         conChangingHpRatio = 1;
         conInHpRatio = 1;
 
@@ -33,6 +38,7 @@ public class MonsterHpBarScript : MonoBehaviour
         changingHp.anchoredPosition = new Vector2(0, 0);
 
         this.target = target;
+        this.height = height;
 
         gameObject.SetActive(true);
     }

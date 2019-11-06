@@ -27,7 +27,7 @@ public class ShootingWeaponScript : WeaponScript
         if (conUsing > 0)
         {
             // 투사체를 생성
-            GameObject temp = ObjectPullManager.GetInstanceByName(projectileName);
+            GameObject temp = ObjectPullManager.Instance.GetInstanceByName(projectileName);
 
             // 발사
             if (temp != null)

@@ -1,23 +1,24 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Cinemachine;
 
-public class PhaseScript : MonoBehaviour
+public class NextRoundTrigger : MonoBehaviour
 {
+    public int roundIndex;
+    private bool isFirst = true;
+
     public bool isVerticalPhase;
     public CinemachineVirtualCamera up_left;
     public CinemachineVirtualCamera down_right;
 
     private void OnTriggerExit(Collider other)
     {
-        if(other.CompareTag("Player"))
+        if (other.CompareTag("Player"))
         {
             // 상하 이동
-            if(isVerticalPhase)
+            if (isVerticalPhase)
             {
                 // 플레이어가 아래로
-                if(transform.position.z > other.transform.position.z)
+                if (transform.position.z > other.transform.position.z)
                 {
                     // 기존의 카메라의 우선도를 낮춘다.
                     SystemManager.Instance.virtualCamera.Priority = 20;
@@ -63,6 +64,10 @@ public class PhaseScript : MonoBehaviour
             }
 
             SystemManager.Instance.RotateViewVector();
+
+            // 처음으로 지나가는 길은 라운드 시작
+            if (isFirst)
+                RoundManager.Instance.RoundStart(roundIndex);
         }
     }
 }
