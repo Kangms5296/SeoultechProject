@@ -4,9 +4,9 @@ using Cinemachine;
 
 public class PlayerScript : MonoBehaviour, ICharacterScript
 {
-    // 플레이어 컴포넌트
-    private CharacterController controller;
-    private Animator animator;
+    [Header("Player Component")]
+    public CharacterController controller;
+    public Animator animator;
 
     [Header("Outside Object Caching")]
     public ParticleSystem dustParticle;                         // 먼지 Particle
@@ -103,9 +103,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         };
 
         conHp = maxHp;
-
-        controller = GetComponent<CharacterController>();
-        animator = GetComponent<Animator>();
 
         StartCoroutine(IsGrounding());
         StartCoroutine(ContinuousAttackJudgment());

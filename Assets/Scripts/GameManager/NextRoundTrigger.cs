@@ -63,11 +63,15 @@ public class NextRoundTrigger : MonoBehaviour
                 }
             }
 
-            SystemManager.Instance.RotateViewVector();
+            // 시점 벡터 변환
+            SystemManager.Instance.RotateViewVector(false);
 
-            // 처음으로 지나가는 길은 라운드 시작
+            // 처음으로 지나가는 길은 다음 라운드 시작
             if (isFirst)
+            {
+                isFirst = false;
                 RoundManager.Instance.RoundStart(roundIndex);
+            }
         }
     }
 }

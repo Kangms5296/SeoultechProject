@@ -80,10 +80,6 @@ public class SystemManager : MonoBehaviour
         Transform cameraTrans = Camera.main.transform;
         forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
         left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
-
-        // 첫 라운드 시작
-        RoundManager.Instance.RoundStart(0);
-        worldSpaceCanvas.rotation = Camera.main.transform.rotation;
     }
 
 
@@ -125,9 +121,9 @@ public class SystemManager : MonoBehaviour
         changeColorGradingCoroutine = StartCoroutine(ChangeColorGradingCoroutine(value));
     }
     
-    public void RotateViewVector()
+    public void RotateViewVector(bool instantRotate)
     {
-        StartCoroutine(RotateViewVectorCoroutine());
+        StartCoroutine(RotateViewVectorCoroutine(instantRotate));
     }
 
 
@@ -257,30 +253,40 @@ public class SystemManager : MonoBehaviour
         changeColorGradingCoroutineOn = false;
     }
 
-    private IEnumerator RotateViewVectorCoroutine()
+    private IEnumerator RotateViewVectorCoroutine(bool instantRotate)
     {
         Transform cameraTrans = Camera.main.transform;
 
-        // 카메라 회전이 지연되면 대기
-        while (!cinemachineBrain.IsBlending)
-            yield return null;
-
-        // 카메라가 회전되면..
-        while (cinemachineBrain.IsBlending)
+        if(instantRotate)
         {
-            // 회전에 맞춰서 시점 벡터를 변환
             forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
             left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
 
-            // World Space Canvas도 회전
             worldSpaceCanvas.rotation = cameraTrans.rotation;
-
-            yield return null;
         }
+        else
+        {
+            // 카메라 회전이 시작될때까지 대기
+            while (!cinemachineBrain.IsBlending)
+                yield return null;
 
-        forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
-        left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+            // 카메라가 회전되면..
+            while (cinemachineBrain.IsBlending)
+            {
+                // 회전에 맞춰서 시점 벡터를 변환
+                forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
+                left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
 
-        worldSpaceCanvas.rotation = cameraTrans.rotation;
+                // World Space Canvas도 회전
+                worldSpaceCanvas.rotation = cameraTrans.rotation;
+
+                yield return null;
+            }
+
+            forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
+            left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+
+            worldSpaceCanvas.rotation = cameraTrans.rotation;
+        }
     }
 }
