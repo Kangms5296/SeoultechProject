@@ -25,8 +25,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     public WeaponSlotManagerScript weaponSlotManager;           // 플레이어 무기 교체 관련 스크립트
     public MotionTrail motionTrail;                             // 고속 이동 간 사용할 Motion Trail 스크립트
     public PlayerHpBarScript hpBarScript;                       // 플레이어 Hp UI 관련 스크립트
+
+    [Header("Audio")]
     public AudioSource moveAudio;                               // 이동 소리 Source
     public AudioSource weaponAudio;                             // 무기 소리 Source
+    public AudioSource etcAudio;                                // 나머지 행동의 소리 Source
+    public AudioClip damagedClip;
 
     // 상태 변화 가능유무 2차배열
     private bool[,] CanChangeAction;
@@ -348,6 +352,10 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // CrossHair 제거
             crossHair.Destroy();
         }
+
+        // 타격 소리
+        etcAudio.clip = damagedClip;
+        etcAudio.Play();
 
         // 이동 멈춤
         StopMove();
@@ -795,6 +803,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 무기 남은 사용량 감소
         swingWeapon.UsingWeapon();
 
+        // 무기 사용 사운드
+        WeaponSoundPlay();
+
         // 공격 영역에 들어온 몬스터 데미지 처리
         attackHitArea.CloseHit(false, swingWeapon.damage, transform.forward, 0.8f);
     }
@@ -825,8 +836,14 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     private void InstanceProjectile()
     {
-        // 투사체를 생성하여 전방으로 공격
-        shootingWeapon.InstanceProjectile(isFocusMode, transform.forward);
+        if (shootingWeapon.conUsing != 0)
+        {
+            // 투사체를 생성하여 전방으로 공격
+            shootingWeapon.InstanceProjectile(isFocusMode, transform.forward);
+
+            // 격발 소리
+            WeaponSoundPlay();
+        }
     }
 
     private void ShootingEnd()

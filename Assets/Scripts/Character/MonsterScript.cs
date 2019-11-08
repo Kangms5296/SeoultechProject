@@ -40,6 +40,8 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
     public int conHp;                                       // 캐릭터 현재 체력
     [HideInInspector] public bool isDie;                    // 캐릭터 사망 여부
     public float height;                                    // HP 바를 띄울 높이
+    public AudioSource audioSource;
+    public AudioClip dieCip;
 
 
     // Start is called before the first frame update
@@ -89,6 +91,9 @@ public abstract class MonsterScript : MonoBehaviour, ICharacterScript
         if (DecreaseHp(damage) == 0)
         // 체력 0 이하는 사망 처리
         {
+            audioSource.clip = dieCip;
+            audioSource.Play();
+
             // 현재 하는 행동을 중단
             StopCoroutine(fsmCoroutine);
             
