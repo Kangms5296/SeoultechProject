@@ -20,6 +20,7 @@ public class MainSceneManager : MonoBehaviour
     private void Start()
     {
         StartCoroutine(CameraRoamingCoroutine());
+        
     }
 
     public void OnClickStart()

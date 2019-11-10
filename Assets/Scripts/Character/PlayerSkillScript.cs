@@ -7,13 +7,25 @@ public class PlayerSkillScript : MonoBehaviour
 {
     [Header("Rolling")]
     public float rollingDelay;
-    private bool canRolling = true;
+    private bool canRolling;
     public Image rollingDelayImage;
 
     [Header("Focus")]
     public float focusDealy;
-    private bool canFocus = true;
+    private bool canFocus;
     public Image focusDelayImage;
+
+    private void OnEnable()
+    {
+        canRolling = true;
+        canFocus = true;
+    }
+
+    private void OnDisable()
+    {
+        canRolling = false;
+        canFocus = false;
+    }
 
     public bool Rolling()
     {

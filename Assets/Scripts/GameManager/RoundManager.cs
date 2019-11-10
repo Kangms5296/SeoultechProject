@@ -54,8 +54,21 @@ public class RoundManager : MonoBehaviour
 
     private int conMonsterCount;
 
+    private bool[] roundClear;
+
+    private void Start()
+    {
+        roundClear = new bool[roundInfos.Count];
+    }
+
     public void RoundStart(int roundIndex)
     {
+        // 이미 클리어한 Round는
+        if (roundClear[roundIndex])
+            // 무시
+            return;
+        roundClear[roundIndex] = true;
+
         StartCoroutine(RoundCoroutine(roundIndex));
     }
 
@@ -106,6 +119,12 @@ public class RoundManager : MonoBehaviour
 
         // 다른 지역으로의 이동 제한 해제
         roundInfos[roundIndex].roundDivisionWall.SetActive(false);
-        roundInfos[roundIndex].nextRoundTrigger.SetActive(true);
+
+        // 모든 라운드를 Clear 했으므로 Clear Panel 생성
+        if (roundInfos[roundIndex].nextRoundTrigger == null)
+            SystemManager.Instance.ClearPanelOn();
+        // 새로운 라운드 진입 가능하도록 Trigger 생성
+        else
+            roundInfos[roundIndex].nextRoundTrigger.SetActive(true);
     }
 }

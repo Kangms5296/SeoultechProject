@@ -22,12 +22,12 @@ public class DropObjectScript : MonoBehaviour
     {
         if(other.gameObject.CompareTag("Player"))
         {
-            // 'Click F' 가 표시된 Text를 Drop된 오브젝트의 위치로 이동
+            // 'Press F' 가 표시된 Text를 Drop된 오브젝트의 위치로 이동
             Vector3 position = transform.position;
-            WorldSpaceCanvasUIs.SetPosition("Click F", new Vector3(position.x, position.y + 0.8f, position.z));
+            WorldSpaceCanvasUIs.SetPosition("Press F", new Vector3(position.x, position.y + 0.8f, position.z));
 
-            // 'Click F' 가 표시된 Text를 화면에 표시
-            WorldSpaceCanvasUIs.SetActive("Click F", true);
+            // 'Press F' 가 표시된 Text를 화면에 표시
+            WorldSpaceCanvasUIs.SetActive("Press F", true);
 
             // 현재 주위에 있는 오브젝트의 정보를 임시 저장
             dropObject = parentWeaponScript;
@@ -39,7 +39,7 @@ public class DropObjectScript : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Player"))
         {
-            WorldSpaceCanvasUIs.SetActive("Click F", false);
+            WorldSpaceCanvasUIs.SetActive("Press F", false);
             
             isThereWeaponAroundPlayer = false;
             //dropObject = null;

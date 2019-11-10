@@ -2,6 +2,9 @@
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 using Cinemachine;
+using UnityEngine.Playables;
+using UnityEngine.Timeline;
+using UnityEngine.SceneManagement;
 
 public class SystemManager : MonoBehaviour
 {
@@ -23,6 +26,7 @@ public class SystemManager : MonoBehaviour
         }
     }
 
+    [Header("For Effect System")]
     public CinemachineBrain cinemachineBrain;
     public CinemachineVirtualCamera virtualCamera;
     private CinemachineBasicMultiChannelPerlin virtualCameraNoise;
@@ -31,6 +35,24 @@ public class SystemManager : MonoBehaviour
     private ColorGrading colorGrading;
     public RadialBlurImageEffect radialBlurImageEffect;
     public RectTransform worldSpaceCanvas;
+
+    [Header("Timeline")]
+    public PlayableDirector playableDirector;
+    public TimelineAsset startTimeline;
+
+    [Header("Useful Object Caching")]
+    public PlayerScript player;
+    public GameObject IngameUI;
+
+    [Header("Die Process")]
+    public GameObject diePanel;
+    public WavyTextEffect wavyTextEffect;
+    public ScalingTextEffect scalingTextEffect;
+
+    [Header("Clear Process")]
+    public GameObject clearPanel;
+    public WavyTextEffect clearWavyTextEffect;
+    public ScalingTextEffect clearScalingTextEffect;
 
     // Hit Effect Use
     private bool isHitEffectCoroutineOn;
@@ -44,6 +66,7 @@ public class SystemManager : MonoBehaviour
         public string type;
         public NoiseSettings noise;
     }
+    [Header("Shake Noise Caching")]
     public ShakeNoiseInfo[] shakeNoiseInfos;
     private bool isCameraShakeCoroutineOn;
     private Coroutine cameraShakeCoroutine;
@@ -74,14 +97,16 @@ public class SystemManager : MonoBehaviour
             colorGrading = postProcessVolume.profile.GetSetting<ColorGrading>();
         }
 
+        // 마우스 커서 삭제
+        InvisibleMouseCursor();
+
         speedAffectedBySlowMode = 1;
         speedUnaffectedBySlowMode = 1;
 
-        Transform cameraTrans = Camera.main.transform;
-        forward = new Vector3(cameraTrans.forward.x, 0, cameraTrans.forward.z).normalized;
-        left = new Vector3(cameraTrans.right.x, 0, cameraTrans.right.z).normalized * -1;
+        StartCoroutine(StartGame());
     }
 
+    // =============================================================================================================== public function ===============================================================================================================
 
     public void HitEffect(float time, float magnitude)
     {
@@ -126,6 +151,73 @@ public class SystemManager : MonoBehaviour
         StartCoroutine(RotateViewVectorCoroutine(instantRotate));
     }
 
+    public void InvisibleMouseCursor()
+    {
+        // Mouse Lock
+        Cursor.lockState = CursorLockMode.Locked;
+
+        // Cursor visible
+        Cursor.visible = false;
+    }
+
+    public void VisivbleMouseCursor()
+    {
+        // Mouse Lock
+        Cursor.lockState = CursorLockMode.None;
+
+        // Cursor visible
+        Cursor.visible = true;
+    }
+
+    public void DiePanelOn()
+    {
+        StartCoroutine(DieCoroutine(1));
+    }
+
+    public void ClearPanelOn()
+    {
+        StartCoroutine(ClearCoroutine(1));
+    }
+
+    public void OnClickReturnBtn()
+    {
+        SceneManager.LoadScene("MainScene");
+    }
+
+    // =============================================================================================================== private function ===============================================================================================================
+
+    private IEnumerator StartGame()
+    {
+        // 입력 무시
+        InputManager.Instance.canInput = false;
+
+        // UI 삭제
+        IngameUI.SetActive(false);
+
+        // 시작 영상 플레이
+        playableDirector.Play(startTimeline);
+        while (playableDirector.state == PlayState.Paused)
+            yield return null;
+
+        // 시작 영상이 끝날때까지 대기
+        while (playableDirector.state == PlayState.Playing)
+            yield return null;
+
+        // 설계 미스로, 이 작업이 이루어져야 캐릭터의 이동이 가능합니다.
+        PlayerScript[] players = FindObjectsOfType<PlayerScript>();
+        foreach (PlayerScript player in players)
+            player.animator.applyRootMotion = true;
+
+        // UI 표시
+        IngameUI.SetActive(true);
+
+        // 입력 가능
+        InputManager.Instance.canInput = true;
+
+        // 첫 라운드 시작
+        RoundManager.Instance.RoundStart(0);
+        RotateViewVector(true);
+    }
 
     private IEnumerator HitEffectCoroutine(float time, float magnitude)
     {
@@ -288,5 +380,49 @@ public class SystemManager : MonoBehaviour
 
             worldSpaceCanvas.rotation = cameraTrans.rotation;
         }
+    }
+
+    private IEnumerator DieCoroutine(float speed)
+    {
+        // UI 삭제
+        IngameUI.SetActive(false);
+
+        diePanel.SetActive(true);
+        
+        CanvasGroup temp = diePanel.GetComponent<CanvasGroup>();
+        for (float conTime = 0; conTime < 1; conTime += Time.deltaTime * speed)
+        {
+            temp.alpha = conTime;
+            yield return null;
+        }
+        temp.alpha = 1;
+
+        VisivbleMouseCursor();
+
+        wavyTextEffect.OnWave();
+        scalingTextEffect.OnScaling();
+    }
+
+    private IEnumerator ClearCoroutine(float speed)
+    {
+        // UI 삭제
+        IngameUI.SetActive(false);
+
+        // Clear 패널 실행
+        clearPanel.SetActive(true);
+        CanvasGroup temp = clearPanel.GetComponent<CanvasGroup>();
+        for (float conTime = 0; conTime < 1; conTime += Time.deltaTime * speed)
+        {
+            temp.alpha = conTime;
+            yield return null;
+        }
+        temp.alpha = 1;
+
+        // 마우스 커서 표시
+        VisivbleMouseCursor();
+
+        // Clear 패널 내 UI On
+        clearWavyTextEffect.OnWave();
+        clearScalingTextEffect.OnScaling();
     }
 }

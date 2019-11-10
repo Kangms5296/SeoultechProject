@@ -51,7 +51,7 @@ public class AttackHitAreaScript : MonoBehaviour
             {
                 // 타격 효과
                 SystemManager.Instance.HitEffect(0.1f, 0.8f);
-                SystemManager.Instance.SlowMode(0.1f, 0.2f);
+                SystemManager.Instance.SlowMode(0.2f, 0.4f);
 
                 // 타격 이펙트
                 GameObject effect = ObjectPullManager.Instance.GetInstanceByName("Hit");
@@ -84,7 +84,7 @@ public class AttackHitAreaScript : MonoBehaviour
                 {
                     // 타격 효과
                     SystemManager.Instance.HitEffect(0.1f, 0.8f);
-                    SystemManager.Instance.SlowMode(0.1f, 0.2f);
+                    SystemManager.Instance.SlowMode(0.2f, 0.4f);
 
                     // 타격 이펙트
                     GameObject effect = ObjectPullManager.Instance.GetInstanceByName("Hit");

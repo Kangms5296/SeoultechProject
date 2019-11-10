@@ -131,19 +131,22 @@ public class ProjectileScript : MonoBehaviour
         {
             if (other.CompareTag("Player"))
             {
-                // 몬스터 데미지 처리
+                // 플레이어 데미지 처리
                 PlayerScript player = other.GetComponent<PlayerScript>();
-                player.TakeDamage(damage, moveVector, 1);
-
-                // 관통 여부에 따라..
-                if (!isPenetrating)
+                if (player.canTakeDamage)
                 {
-                    // 이동 정지
-                    if (movingCoroutine != null)
-                        StopCoroutine(movingCoroutine);
+                    player.TakeDamage(damage, moveVector, 1);
 
-                    // 총알 삭제
-                    StartCoroutine(Removing());
+                    // 관통 여부에 따라..
+                    if (!isPenetrating)
+                    {
+                        // 이동 정지
+                        if (movingCoroutine != null)
+                            StopCoroutine(movingCoroutine);
+
+                        // 총알 삭제
+                        StartCoroutine(Removing());
+                    }
                 }
             }
         }

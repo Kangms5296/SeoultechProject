@@ -3,11 +3,12 @@ using Cinemachine;
 
 public class NextRoundTrigger : MonoBehaviour
 {
-    public int roundIndex;
-    private bool isFirst = true;
-
     public bool isVerticalPhase;
+
+    public int up_leftRoundIndex;
     public CinemachineVirtualCamera up_left;
+
+    public int down_rightRoundIndex;
     public CinemachineVirtualCamera down_right;
 
     private void OnTriggerExit(Collider other)
@@ -26,6 +27,12 @@ public class NextRoundTrigger : MonoBehaviour
                     // 새로 등록된 시네머신의 우선도를 높인다.
                     SystemManager.Instance.virtualCamera = down_right;
                     SystemManager.Instance.virtualCamera.Priority = 30;
+
+                    // 시점 벡터 변환
+                    SystemManager.Instance.RotateViewVector(false);
+
+                    // 새로운 Round 시작
+                    RoundManager.Instance.RoundStart(down_rightRoundIndex);
                 }
                 // 플레이어가 위로
                 else
@@ -36,6 +43,12 @@ public class NextRoundTrigger : MonoBehaviour
                     // 새로 등록된 시네머신의 우선도를 높인다.
                     SystemManager.Instance.virtualCamera = up_left;
                     SystemManager.Instance.virtualCamera.Priority = 30;
+
+                    // 시점 벡터 변환
+                    SystemManager.Instance.RotateViewVector(false);
+
+                    // 새로운 Round 시작
+                    RoundManager.Instance.RoundStart(up_leftRoundIndex);
                 }
             }
             // 좌우 이동
@@ -50,6 +63,12 @@ public class NextRoundTrigger : MonoBehaviour
                     // 새로 등록된 시네머신의 우선도를 높인다.
                     SystemManager.Instance.virtualCamera = up_left;
                     SystemManager.Instance.virtualCamera.Priority = 30;
+
+                    // 시점 벡터 변환
+                    SystemManager.Instance.RotateViewVector(false);
+
+                    // 새로운 Round 시작
+                    RoundManager.Instance.RoundStart(up_leftRoundIndex);
                 }
                 // 플레이어가 오른쪽
                 else
@@ -60,17 +79,13 @@ public class NextRoundTrigger : MonoBehaviour
                     // 새로 등록된 시네머신의 우선도를 높인다.
                     SystemManager.Instance.virtualCamera = down_right;
                     SystemManager.Instance.virtualCamera.Priority = 30;
+
+                    // 시점 벡터 변환
+                    SystemManager.Instance.RotateViewVector(false);
+
+                    // 새로운 Round 시작
+                    RoundManager.Instance.RoundStart(down_rightRoundIndex);
                 }
-            }
-
-            // 시점 벡터 변환
-            SystemManager.Instance.RotateViewVector(false);
-
-            // 처음으로 지나가는 길은 다음 라운드 시작
-            if (isFirst)
-            {
-                isFirst = false;
-                RoundManager.Instance.RoundStart(roundIndex);
             }
         }
     }

@@ -31,6 +31,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     public AudioSource weaponAudio;                             // 무기 소리 Source
     public AudioSource etcAudio;                                // 나머지 행동의 소리 Source
     public AudioClip damagedClip;
+    public AudioClip punchClip;
 
     // 상태 변화 가능유무 2차배열
     private bool[,] CanChangeAction;
@@ -86,7 +87,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     public float gravity;                                       // 중력 가속도
     private float resultGravity = 0;                            // 현재 작용되는 중력
 
-    private bool canTakeDamage = true;                          // 피격 판정
+    [HideInInspector] public bool canTakeDamage = true;                          // 피격 판정
 
     void Start()
     {
@@ -112,7 +113,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         StartCoroutine(ContinuousAttackJudgment());
     }
 
-    void Update()
+    private void Update()
     {
         // 캐릭터 이동
         Moving();
@@ -183,8 +184,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // CrossHair 제거
             crossHair.Destroy();
 
-            animator.SetTrigger("Move");
-            conAction = 0;
+            // 이동 시작
+            MoveStart();
         }
         else
         {
@@ -367,6 +368,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (DecreaseHp(damage) == 0)
         // 체력 0 이하는 사망 처리
         {
+            // 입력 무시
+            InputManager.Instance.canInput = false;
+
             // 피격 판정 off
             canTakeDamage = false;
 
@@ -381,6 +385,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // 사망 애니메이션
             animator.SetTrigger("Die");
             conAction = 8;
+
+            Invoke("DiePanelOn", 2);
+
         }
         // 체력 0이 아닌 경우
         else
@@ -702,8 +709,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
                         attackHitArea.CloseHitAreaOff();
 
-                        animator.SetTrigger("Move");
-                        conAction = 0;
+                        // 이동 시작
+                        MoveStart();
                     }
                     else
                     {
@@ -731,8 +738,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     // 공격 판정 범위 Off
                     attackHitArea.CloseHitAreaOff();
 
-                    animator.SetTrigger("Move");
-                    conAction = 0;
+                    // 이동 시작
+                    MoveStart();
 
                     break;
 
@@ -773,9 +780,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     // 공격 판정 범위 Off
                     attackHitArea.CloseHitAreaOff();
 
-                    // 이동
-                    animator.SetTrigger("Move");
-                    conAction = 0;
+                    // 이동 시작
+                    MoveStart();
 
                     break;
 
@@ -784,8 +790,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     
                     shootingWeapon.ContinuousAttackEnd();
 
-                    animator.SetTrigger("Move");
-                    conAction = 0;
+                    // 이동 시작
+                    MoveStart();
 
                     break;
             }
@@ -794,6 +800,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     private void PunchHitMonster()
     {
+        // 무기 사용 사운드
+        WeaponSoundPlay();
+
         // 공격 영역에 들어온 몬스터 데미지 처리
         attackHitArea.CloseHit(true, 5, transform.forward, 0.5f);
     }
@@ -868,8 +877,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 일반 공격
         else
         {
-            animator.SetTrigger("Move");
-            conAction = 0;
+            // 이동 시작
+            MoveStart();
         }
     }
     
@@ -922,9 +931,10 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         }
     }
 
-    private void JumpEnd()
+    private void MoveStart()
     {
         // 이동 애니메이션 실행
+        animator.ResetTrigger("Move");
         animator.SetTrigger("Move");
         conAction = 0;
     }
@@ -975,14 +985,14 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                     {
                         dustParticle.Play();
 
-                        JumpEnd();
+                        MoveStart();
                     }
                     // 그 외는 점프 후 멈춘다.
                     else
                     {
                         dustParticle.Play();
 
-                        JumpEnd();
+                        MoveStart();
                     }
                 }
             }
@@ -1101,15 +1111,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         weapon.localPosition = Vector3.zero;
         weapon.localRotation = Quaternion.Euler(0, 0, 0);
 
-        // 'Click F' Text를 화면에서 지운다.
-        WorldSpaceCanvasUIs.SetActive("Click F", false);
-    }
-
-    private void PickUpEnd()
-    {
-        // 이동
-        animator.SetTrigger("Move");
-        conAction = 0;
+        // 'Press F' Text를 화면에서 지운다.
+        WorldSpaceCanvasUIs.SetActive("Press F", false);
     }
 
     private void DisarmStart()
@@ -1140,18 +1143,12 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
             // 무기를 최초 상태로 초기화
             conWeapon.ResetOwner();
             conWeapon.ChangeToDrop();
+            weaponAudio.clip = punchClip;
 
             // 현재 무기 상태를 없음 으로 기록.
             conWeaponType = Weapontype.None;
             SetWeaponInfo(null);
         }
-    }
-
-    private void DisarmEnd()
-    {
-        // 이동
-        animator.SetTrigger("Move");
-        conAction = 0;
     }
 
     // 무기 교체 모션 실행
@@ -1217,6 +1214,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (newWeapon == null)
         {
             conWeaponType = Weapontype.None;
+            weaponAudio.clip = punchClip;
+
         }
         else
         {
@@ -1270,6 +1269,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         if (newWeapon == null)
         {
             conWeaponType = Weapontype.None;
+            weaponAudio.clip = punchClip;
         }
         else
         {
@@ -1300,13 +1300,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 weaponAudio.clip = newWeapon.weaponUsingSound;
             }
         }
-    }
-
-    private void WeaponChangeEnd()
-    {
-        // 이동
-        animator.SetTrigger("Move");
-        conAction = 0;
     }
 
     private void RollStart(bool isLeft, Vector3 moveDirection)
@@ -1355,8 +1348,7 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         canTakeDamage = true;
 
         // 이동
-        animator.SetTrigger("Move");
-        conAction = 0;
+        MoveStart();
     }
 
     private void Aim()
@@ -1399,13 +1391,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         // 현재 무기 정보 초기화
         conWeaponType = Weapontype.None;
         throwingWeapon = null;
-    }
-
-    private void ThrowingEnd()
-    {
-        // 이동
-        animator.SetTrigger("Move");
-        conAction = 0;
     }
 
     private void SetWeaponInfo(WeaponScript weapon)
@@ -1452,10 +1437,8 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         }
     }
 
-    private void DamageEnd()
+    private void DiePanelOn()
     {
-        // 이동
-        animator.SetTrigger("Move");
-        conAction = 0;
+        SystemManager.Instance.DiePanelOn();
     }
 }

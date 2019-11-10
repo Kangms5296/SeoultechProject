@@ -15,7 +15,7 @@ public class GameEndScript : MonoBehaviour
         Time.timeScale = 0;
 
         // 마우스 커서 표시
-        GameManager.Instance.VisivbleMouseCursor();
+        SystemManager.Instance.VisivbleMouseCursor();
 
         // 게임 종료 패널 표시
         gameEndPanel.SetActive(true);
@@ -36,7 +36,7 @@ public class GameEndScript : MonoBehaviour
         Time.timeScale = 1;
 
         // 마우스 커서 감춤
-        GameManager.Instance.InvisibleMouseCursor();
+        SystemManager.Instance.InvisibleMouseCursor();
 
         // 게임 종료 패널 삭제
         gameEndPanel.SetActive(false);
