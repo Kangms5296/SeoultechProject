@@ -1,11 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.UI;
 
 
 public class RoundManager : MonoBehaviour
 {
+    public Text temp;
+    private Coroutine tempCoroutine;
+
     private static RoundManager _instance = null;
 
     public static RoundManager Instance
@@ -84,6 +87,11 @@ public class RoundManager : MonoBehaviour
         // 라운드 간 다른 지역으로의 이동 제한
         roundInfos[roundIndex].roundDivisionWall.SetActive(true);
 
+        // 라운드 시작 Text 실행
+        if (tempCoroutine != null)
+            StopCoroutine(tempCoroutine);
+        tempCoroutine = StartCoroutine(TempStart("Round Start!"));
+
         // 이번 라운드의 각 페이즈를 시작
         int phaseMaxCount = roundInfos[roundIndex].phaseInfos.Count;
         for(int phaseConCount = 0; phaseConCount < phaseMaxCount; phaseConCount++)
@@ -125,6 +133,52 @@ public class RoundManager : MonoBehaviour
             SystemManager.Instance.ClearPanelOn();
         // 새로운 라운드 진입 가능하도록 Trigger 생성
         else
+        {
+            // 라운드 시작 Text 실행
+            if (tempCoroutine != null)
+                StopCoroutine(tempCoroutine);
+            tempCoroutine = StartCoroutine(TempStart("Go to Next Round!"));
+
             roundInfos[roundIndex].nextRoundTrigger.SetActive(true);
+        }
+    }
+
+    private IEnumerator TempStart(string str)
+    {
+        RectTransform tempRect = temp.GetComponent<RectTransform>();
+        
+        Color tempColor = temp.color;
+        temp.color = new Color(tempColor.r, tempColor.g, tempColor.b, 0);
+        temp.text = str;
+
+        float conTime = 0;
+        float maxTime = 1;
+        while(conTime < maxTime)
+        {
+            tempRect.anchoredPosition = new Vector2(0, 150 + 50 * conTime);
+            temp.color = new Color(tempColor.r, tempColor.g, tempColor.b, conTime);
+            conTime += Time.deltaTime * 3;
+            yield return null;
+        }
+        tempRect.anchoredPosition = new Vector2(0, 200);
+        temp.color = new Color(tempColor.r, tempColor.g, tempColor.b, 1);
+
+        conTime = 0;
+        while (conTime < maxTime)
+        {
+            conTime += Time.deltaTime;
+            yield return null;
+        }
+
+        conTime = 0;
+        while (conTime < 1)
+        {
+            tempRect.anchoredPosition = new Vector2(0, 200 + 50 * conTime);
+            temp.color = new Color(tempColor.r, tempColor.g, tempColor.b, 1 - conTime);
+            conTime += Time.deltaTime * 3;
+            yield return null;
+        }
+        tempRect.anchoredPosition = new Vector2(0, 250);
+        temp.color = new Color(tempColor.r, tempColor.g, tempColor.b, 0);
     }
 }

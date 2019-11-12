@@ -32,6 +32,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
     public AudioSource etcAudio;                                // 나머지 행동의 소리 Source
     public AudioClip damagedClip;
     public AudioClip punchClip;
+    public AudioClip footstepClip;
+    public AudioClip jumpClip;
+    public AudioClip rollingClip;
 
     // 상태 변화 가능유무 2차배열
     private bool[,] CanChangeAction;
@@ -412,6 +415,19 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
     public void MoveSoundPlay()
     {
+        moveAudio.clip = footstepClip;
+        moveAudio.Play();
+    }
+
+    public void JumpSoundPlay()
+    {
+        moveAudio.clip = jumpClip;
+        moveAudio.Play();
+    }
+
+    public void RollingSoundPlay()
+    {
+        moveAudio.clip = rollingClip;
         moveAudio.Play();
     }
 
@@ -906,6 +922,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         isVerticalMove = false;
         isHorizontalMove = false;
 
+        // Jump 사운드 실행
+        JumpSoundPlay();
+
         // 점프 후 땅에 착지하는지 확인
         isGroundAfterJump = false;
 
@@ -976,12 +995,14 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
                 resultGravity = 0;
 
                 // 점프 후 착지한 경우
-                if(!isGroundAfterJump)
+                if (!isGroundAfterJump)
                 {
                     isGroundAfterJump = true;
 
+                    JumpSoundPlay();
+
                     // 어느정도 빠른 속도이면 멈추지 않고 계속 달린다
-                    if(IsRunning())
+                    if (IsRunning())
                     {
                         dustParticle.Play();
 
@@ -1309,6 +1330,9 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
 
         // 구르기 간 피격 판정 Off
         canTakeDamage = false;
+
+        // 구르기 사운드 플레이
+        RollingSoundPlay();
 
         // 기존의 상태에서의 변화 체크
         if (isFocusMode)
