@@ -1131,9 +1131,6 @@ public class PlayerScript : MonoBehaviour, ICharacterScript
         weapon.SetParent(handlingWeaponParent, true);
         weapon.localPosition = Vector3.zero;
         weapon.localRotation = Quaternion.Euler(0, 0, 0);
-
-        // 'Press F' Text를 화면에서 지운다.
-        WorldSpaceCanvasUIs.SetActive("Press F", false);
     }
 
     private void DisarmStart()

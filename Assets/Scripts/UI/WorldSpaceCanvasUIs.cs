@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class WorldSpaceCanvasUIs : MonoBehaviour
 {
-    private static Dictionary<string, WorldSpaceCanvasUIs> instances;
+    private static Dictionary<string, WorldSpaceCanvasUIs> instances = new Dictionary<string, WorldSpaceCanvasUIs>();
 
     // Start is called before the first frame update
     void Awake()
     {
         if (instances == null)
-            instances = new Dictionary<string, WorldSpaceCanvasUIs>();
-
-        instances.Add(gameObject.name, this);
+        {
+            instances.Add(gameObject.name, this);
+        }
 
         gameObject.SetActive(false);
     }

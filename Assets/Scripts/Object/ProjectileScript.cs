@@ -58,15 +58,9 @@ public class ProjectileScript : MonoBehaviour
         // 충돌판정 off
         projectileCollider.enabled = false;
 
-        // 모든 파티클을 삭제
-        ParticleSystem[] particles = GetComponentsInChildren<ParticleSystem>();
-        if (particles != null)
-            foreach (ParticleSystem particle in particles)
-                particle.Stop();
-
         // 1초간 대기
         float conTime = 0;
-        while (conTime < 0.5f)
+        while (conTime < 1f)
         {
             conTime += Time.deltaTime;
             yield return null;
